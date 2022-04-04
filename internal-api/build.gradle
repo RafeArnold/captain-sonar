@@ -1,0 +1,10 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+dependencies {
+    implementation project(":common")
+    implementation project(":repository")
+    implementation "com.google.inject:guice:$guice_version"
+    implementation "ch.qos.logback:logback-classic:$logback_version"
+}

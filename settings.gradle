@@ -1,1 +1,5 @@
 rootProject.name = 'captain-sonar'
+include 'common'
+include 'repository'
+include 'internal-api'
+include 'rest-api-v1'

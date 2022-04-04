@@ -1,0 +1,11 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+dependencies {
+    implementation project(":common")
+    implementation project(":internal-api")
+    implementation "io.vertx:vertx-web:$vertx_version"
+    implementation "com.google.inject:guice:$guice_version"
+    implementation "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
+}

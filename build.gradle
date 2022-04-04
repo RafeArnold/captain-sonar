@@ -1,14 +1,57 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.6.10'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
 }
 
 group 'uk.co.rafearnold'
 version '1.0.0-SNAPSHOT'
 
-repositories {
-    mavenCentral()
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
+
+ext {
+    vertx_version = '4.2.6'
+    guice_version = '5.1.0'
+    jedis_version = '4.1.1'
+    jackson_version = '2.13.2'
+    logback_version = '1.2.11'
+    junit_version = '5.8.2'
 }
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    implementation project(":common")
+    implementation project(":internal-api")
+    implementation project(":rest-api-v1")
+    implementation "io.vertx:vertx-web:$vertx_version"
+    implementation "io.vertx:vertx-config:$vertx_version"
+    implementation "io.vertx:vertx-health-check:$vertx_version"
+    implementation "com.google.inject:guice:$guice_version"
+    implementation "ch.qos.logback:logback-classic:$logback_version"
+    implementation "com.fasterxml.jackson.module:jackson-module-kotlin:$jackson_version"
+
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
+}
+
+application {
+    mainClassName = 'io.vertx.core.Launcher'
+}
+
+shadowJar {
+    manifest {
+        attributes 'Main-Verticle': 'uk.co.rafearnold.captainsonar.Starter'
+    }
+}
+
+runShadow {
+    jvmArgs = ["-Dapplication.properties.path=src/main/resources/application.properties"]
+}
+
+test {
+    useJUnitPlatform()
 }
