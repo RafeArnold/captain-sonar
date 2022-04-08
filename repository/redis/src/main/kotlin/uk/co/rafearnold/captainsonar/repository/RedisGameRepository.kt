@@ -4,19 +4,22 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.Response
 import redis.clients.jedis.Transaction
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReentrantLock
+import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
+import uk.co.rafearnold.captainsonar.shareddata.SharedLock
+import uk.co.rafearnold.captainsonar.shareddata.getDistributedLock
+import uk.co.rafearnold.captainsonar.shareddata.withLock
 import javax.inject.Inject
-import kotlin.concurrent.withLock
 
 class RedisGameRepository @Inject constructor(
     private val redisClientProvider: RedisClientProvider,
+    sharedDataService: SharedDataService,
     private val objectMapper: ObjectMapper
 ) : GameRepository {
 
     private val redisClient: Jedis get() = redisClientProvider.get()
 
-    private val lock: Lock = ReentrantLock()
+    private val lock: SharedLock =
+        sharedDataService.getDistributedLock("uk.co.rafearnold.captainsonar.repository.redis.lock")
 
     override fun createGame(gameId: String, game: StoredGame): StoredGame =
         lock.withLock {

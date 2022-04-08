@@ -15,20 +15,28 @@ allprojects {
 
 ext {
     vertx_version = '4.2.6'
+    hazelcast_version = '4.2.2'
     guice_version = '5.1.0'
-    jedis_version = '4.1.1'
+    jedis_version = '4.2.0'
     jackson_version = '2.13.2'
     logback_version = '1.2.11'
+    slf4j_version = '1.7.36'
     junit_version = '5.8.2'
+    mockk_version = '1.12.3'
 }
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation project(":common")
+    implementation project(":common:config")
+    implementation project(":common:shared-data:hazelcast")
+    implementation project(":repository:redis")
+    implementation project(":repository:shared-data")
     implementation project(":internal-api")
     implementation project(":rest-api-v1")
     implementation "io.vertx:vertx-web:$vertx_version"
     implementation "io.vertx:vertx-config:$vertx_version"
+    implementation "io.vertx:vertx-hazelcast:$vertx_version"
     implementation "io.vertx:vertx-health-check:$vertx_version"
     implementation "com.google.inject:guice:$guice_version"
     implementation "ch.qos.logback:logback-classic:$logback_version"
@@ -50,6 +58,7 @@ shadowJar {
 
 runShadow {
     jvmArgs = ["-Dapplication.properties.path=src/main/resources/application.properties"]
+    args = ["-cluster"]
 }
 
 test {

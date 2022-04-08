@@ -2,6 +2,7 @@ package uk.co.rafearnold.captainsonar
 
 import com.google.inject.Guice
 import com.google.inject.Injector
+import com.google.inject.Module
 import io.vertx.core.AbstractVerticle
 import io.vertx.core.AsyncResult
 import io.vertx.core.DeploymentOptions
@@ -16,7 +17,10 @@ import uk.co.rafearnold.captainsonar.common.toCompletableFuture
 import uk.co.rafearnold.captainsonar.config.ConfigRetrieverProvider
 import uk.co.rafearnold.captainsonar.guice.GuiceVerticleFactory
 import uk.co.rafearnold.captainsonar.guice.MainModule
+import uk.co.rafearnold.captainsonar.repository.RedisRepositoryModule
+import uk.co.rafearnold.captainsonar.repository.SharedDataRepositoryModule
 import uk.co.rafearnold.captainsonar.restapiv1.RestApiV1Module
+import uk.co.rafearnold.captainsonar.shareddata.HazelcastSharedDataModule
 
 class Starter : AbstractVerticle() {
 
@@ -27,6 +31,8 @@ class Starter : AbstractVerticle() {
                 val injector: Injector =
                     Guice.createInjector(
                         MainModule(vertx = vertx, initialConfig = initialConfig),
+                        HazelcastSharedDataModule(),
+                        getRepositoryModule(config = initialConfig),
                         InternalApiModule(),
                         RestApiV1Module()
                     )
@@ -57,6 +63,14 @@ class Starter : AbstractVerticle() {
             }
             .exceptionally { startPromise.fail(it); null }
     }
+
+    private fun getRepositoryModule(config: JsonObject): Module =
+        when (val repoType: String? = config.getString("repository.type")) {
+            "redis" -> RedisRepositoryModule()
+            "shared-data" -> SharedDataRepositoryModule()
+            null -> throw IllegalArgumentException("No repository type provided")
+            else -> throw IllegalArgumentException("Unrecognised repository type $repoType")
+        }
 
     private fun getVerticleDeploymentIdentifier(
         verticleToDeploy: Class<out Verticle>,

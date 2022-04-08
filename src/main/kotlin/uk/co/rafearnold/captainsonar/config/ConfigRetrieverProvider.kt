@@ -13,7 +13,9 @@ class ConfigRetrieverProvider @Inject constructor(
 ) : Provider<ConfigRetriever> {
 
     override fun get(): ConfigRetriever {
-        val propertiesFilepath: String = System.getProperty("application.properties.path")
+        val propertiesFilepath: String =
+            System.getProperty("application.properties.path")
+                ?: System.getenv("APPLICATION_PROPERTIES_PATH")
         val propertiesFileStoreOptions: ConfigStoreOptions =
             ConfigStoreOptions()
                 .setType("file")

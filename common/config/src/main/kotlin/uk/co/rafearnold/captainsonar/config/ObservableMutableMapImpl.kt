@@ -14,7 +14,7 @@ import java.util.function.Function
 import java.util.function.Predicate
 import kotlin.concurrent.withLock
 
-class ObservableMutableMapImpl<K, V>(
+class ObservableMutableMapImpl<K, V : Any>(
     private val backingMap: MutableMap<K, V>
 ) : ObservableMutableMap<K, V>, MutableMap<K, V> by backingMap {
 
@@ -152,7 +152,7 @@ class ObservableMutableMapImpl<K, V>(
 
     override val values: MutableCollection<V> = ValueSet(map = this)
 
-    private class EntrySet<K, V>(
+    private class EntrySet<K, V : Any>(
         private val map: ObservableMutableMapImpl<K, V>
     ) : MutableSet<MutableMap.MutableEntry<K, V>> by map.backingMap.entries {
 
@@ -242,7 +242,7 @@ class ObservableMutableMapImpl<K, V>(
                     }
             }
 
-        private class EntrySetIterator<K, V>(
+        private class EntrySetIterator<K, V : Any>(
             private val map: ObservableMutableMapImpl<K, V>
         ) : MutableIterator<MutableMap.MutableEntry<K, V>> {
 
@@ -270,7 +270,7 @@ class ObservableMutableMapImpl<K, V>(
                 }
         }
 
-        private class EntrySetEntry<K, V>(
+        private class EntrySetEntry<K, V : Any>(
             private val map: ObservableMutableMapImpl<K, V>,
             private val backingEntry: MutableMap.MutableEntry<K, V>
         ) : MutableMap.MutableEntry<K, V> {
@@ -300,7 +300,7 @@ class ObservableMutableMapImpl<K, V>(
         override fun toString(): String = map.backingMap.entries.toString()
     }
 
-    private class KeySet<K, V>(
+    private class KeySet<K, V : Any>(
         private val map: ObservableMutableMapImpl<K, V>
     ) : MutableSet<K> by map.backingMap.keys {
 
@@ -391,7 +391,7 @@ class ObservableMutableMapImpl<K, V>(
                     }
             }
 
-        private class KeySetIterator<K, V>(
+        private class KeySetIterator<K, V : Any>(
             private val map: ObservableMutableMapImpl<K, V>
         ) : MutableIterator<K> {
 
@@ -428,7 +428,7 @@ class ObservableMutableMapImpl<K, V>(
         override fun toString(): String = map.backingMap.keys.toString()
     }
 
-    private class ValueSet<K, V>(
+    private class ValueSet<K, V : Any>(
         private val map: ObservableMutableMapImpl<K, V>
     ) : MutableCollection<V> by map.backingMap.values {
 
@@ -496,7 +496,7 @@ class ObservableMutableMapImpl<K, V>(
                     }
             }
 
-        private class ValueSetIterator<K, V>(
+        private class ValueSetIterator<K, V : Any>(
             private val map: ObservableMutableMapImpl<K, V>
         ) : MutableIterator<V> {
 

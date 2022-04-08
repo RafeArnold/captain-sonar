@@ -27,6 +27,6 @@ class JoinGameRestApiV1HandlerRouteRegister @Inject constructor(
 
     override fun handle(ctx: RoutingContext, userId: String): Any {
         val request: JoinGameRequestRestApiV1Model = ctx.readRequestBody()
-        return apiService.joinGame(userId = userId, request = request)
+        return apiService.joinGame(userId = userId, request = request, ctx = ctx)
     }
 }

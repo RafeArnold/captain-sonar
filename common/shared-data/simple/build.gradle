@@ -1,0 +1,16 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+dependencies {
+    implementation project(":common:shared-data")
+    implementation "com.google.inject:guice:$guice_version"
+
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
+    testImplementation "io.mockk:mockk:$mockk_version"
+}
+
+test {
+    useJUnitPlatform()
+}

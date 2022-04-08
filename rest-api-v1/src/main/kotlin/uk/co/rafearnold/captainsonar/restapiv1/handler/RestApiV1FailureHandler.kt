@@ -1,5 +1,7 @@
 package uk.co.rafearnold.captainsonar.restapiv1.handler
 
+import io.netty.handler.codec.http.HttpHeaderNames
+import io.netty.handler.codec.http.HttpHeaderValues
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.vertx.core.Handler
 import io.vertx.core.json.JsonObject
@@ -20,6 +22,7 @@ class RestApiV1FailureHandler : Handler<RoutingContext> {
             message = "Unknown"
         }
         ctx.response()
+            .putHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
             .setStatusCode(statusCode)
             .end(
                 JsonObject()

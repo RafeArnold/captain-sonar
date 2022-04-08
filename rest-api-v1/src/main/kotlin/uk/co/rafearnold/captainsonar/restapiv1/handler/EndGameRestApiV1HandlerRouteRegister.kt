@@ -24,8 +24,8 @@ class EndGameRestApiV1HandlerRouteRegister @Inject constructor(
                 .failureHandler(failureHandler)
         }
 
-    override fun handle(ctx: RoutingContext, userId: String): Any {
-        val request: EndGameRequestRestApiV1Model = ctx.readRequestBody()
-        return apiService.endGame(userId = userId, request = request)
+    override fun handle(ctx: RoutingContext, userId: String): Any? {
+        apiService.endGame(userId = userId, ctx = ctx)
+        return null
     }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.inject.AbstractModule
 import com.google.inject.Scopes
 import com.google.inject.multibindings.Multibinder
+import com.hazelcast.core.HazelcastInstance
 import io.vertx.config.ConfigRetriever
 import io.vertx.core.Vertx
 import io.vertx.core.json.JsonObject
@@ -33,6 +34,7 @@ class MainModule(
         bind(typeLiteral<ObservableMap<String, String>>()).toProvider(ConfigProvider::class.java).`in`(Scopes.SINGLETON)
         bind(Router::class.java).toProvider(RouterProvider::class.java).`in`(Scopes.SINGLETON)
         bind(ObjectMapper::class.java).toProvider(ObjectMapperProvider::class.java)
+        bind(HazelcastInstance::class.java).toProvider(HazelcastInstanceProvider::class.java).`in`(Scopes.SINGLETON)
         bindRegisters()
     }
 

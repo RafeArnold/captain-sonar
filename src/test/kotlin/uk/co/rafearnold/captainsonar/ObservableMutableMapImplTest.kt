@@ -25,7 +25,7 @@ class ObservableMutableMapImplTest {
         val value3 = "test_value3"
 
         val listener1Events: MutableList<ObservableMap.ListenEvent<String, String>> = mutableListOf()
-        val listener1Id: String = observableMap.addListener(key1) { listener1Events.add(it) }
+        val listener1Id: String = observableMap.addListener({ it == key1 }, { listener1Events.add(it) })
 
         assertIterableEquals(emptyList<ObservableMap.ListenEvent<String, String>>(), listener1Events)
 
@@ -67,7 +67,7 @@ class ObservableMutableMapImplTest {
         }
 
         val listener2Events: MutableList<ObservableMap.ListenEvent<String, String>> = mutableListOf()
-        observableMap.addListener(key1) { listener2Events.add(it) }
+        observableMap.addListener({ it == key1 }, { listener2Events.add(it) })
 
         observableMap[key1] = value3
 
@@ -92,7 +92,7 @@ class ObservableMutableMapImplTest {
         }
 
         val listener3Events: MutableList<ObservableMap.ListenEvent<String, String>> = mutableListOf()
-        val listener3Id: String = observableMap.addListener(key2) { listener3Events.add(it) }
+        val listener3Id: String = observableMap.addListener({ it == key2 }, { listener3Events.add(it) })
 
         observableMap[key2] = value1
 
@@ -185,7 +185,7 @@ class ObservableMutableMapImplTest {
         }
 
         val listener4Events: MutableList<ObservableMap.ListenEvent<String, String>> = mutableListOf()
-        observableMap.addListener(key1) { listener4Events.add(it) }
+        observableMap.addListener({ it == key1 }, { listener4Events.add(it) })
 
         observableMap[key1] = value3
 
@@ -223,7 +223,7 @@ class ObservableMutableMapImplTest {
         }
 
         val listener5Events: MutableList<ObservableMap.ListenEvent<String, String>> = mutableListOf()
-        observableMap.addListener(key2) { listener5Events.add(it) }
+        observableMap.addListener({ it == key2 }, { listener5Events.add(it) })
 
         observableMap[key2] = value1
 

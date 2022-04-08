@@ -10,18 +10,21 @@ import uk.co.rafearnold.captainsonar.restapiv1.model.JoinGameRequestRestApiV1Mod
 import uk.co.rafearnold.captainsonar.restapiv1.model.JoinGameResponseRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.StartGameResponseRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.mapper.RestApiV1ModelMapper
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReentrantLock
+import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
+import uk.co.rafearnold.captainsonar.shareddata.SharedLock
+import uk.co.rafearnold.captainsonar.shareddata.getDistributedLock
+import uk.co.rafearnold.captainsonar.shareddata.withLock
 import javax.inject.Inject
-import kotlin.concurrent.withLock
 
 class RestApiV1ServiceImpl @Inject constructor(
     private val gameService: GameService,
     private val sessionService: RestApiV1SessionService,
+    sharedDataService: SharedDataService,
     private val modelMapper: RestApiV1ModelMapper
 ) : RestApiV1Service {
 
-    private val lock: Lock = ReentrantLock()
+    private val lock: SharedLock =
+        sharedDataService.getDistributedLock(name = "uk.co.rafearnold.captainsonar.rest-api-v1.service.lock")
 
     override fun createGame(
         userId: String,
@@ -61,15 +64,16 @@ class RestApiV1ServiceImpl @Inject constructor(
         }
 
     override fun startGame(userId: String, ctx: RoutingContext): StartGameResponseRestApiV1Model =
-        StartGameResponseRestApiV1Model(
-            gameState = modelMapper.mapToGameStateRestApiV1Model(
-                game = gameService.startGame(gameId = sessionService.getGameId(), playerId = userId),
-                userId = userId
+        lock.withLock {
+            val game: Game = gameService.startGame(gameId = ctx.getGameIdOrThrow(), playerId = userId)
+            StartGameResponseRestApiV1Model(
+                gameState = modelMapper.mapToGameStateRestApiV1Model(game = game, userId = userId)
             )
-        )
+        }
 
-    override fun endGame(userId: String, ctx: RoutingContext) =
-        gameService.deleteGame(gameId = gameId, playerId = userId)
+    override fun endGame(userId: String, ctx: RoutingContext) {
+        lock.withLock { gameService.deleteGame(gameId = ctx.getGameIdOrThrow(), playerId = userId) }
+    }
 
     override fun streamGame(userId: String, gameId: String, listener: RestApiV1GameListener): String =
         gameService.addGameListener(gameId) {
@@ -79,4 +83,11 @@ class RestApiV1ServiceImpl @Inject constructor(
     override fun endStream(gameId: String, streamId: String) {
         gameService.removeGameListener(gameId = gameId, listenerId = streamId)
     }
+
+    private fun RoutingContext.getGameIdOrThrow(): String =
+        sessionService.getGameId(this)
+            ?: throw RestApiV1Exception(
+                statusCode = HttpResponseStatus.CONFLICT.code(),
+                message = "User is not in a game"
+            )
 }

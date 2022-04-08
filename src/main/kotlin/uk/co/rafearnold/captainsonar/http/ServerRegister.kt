@@ -50,7 +50,7 @@ class ServerRegister @Inject constructor(
                         .toCompletableFuture()
                         .thenCompose<Void> {
                             (this.server?.close()?.toCompletableFuture()
-                                ?.thenRun { log.info("Server on port $serverPort closed") }
+                                ?.thenRun { log.info("Server on port ${this.server?.actualPort()} closed") }
                                 ?: CompletableFuture.completedFuture(null))
                                 .thenRun {
                                     log.info("Server started on port $serverPort")

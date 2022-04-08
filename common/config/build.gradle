@@ -1,0 +1,7 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+dependencies {
+    compileOnly "org.slf4j:slf4j-api:$slf4j_version"
+}

@@ -20,24 +20,27 @@ import uk.co.rafearnold.captainsonar.repository.StoredGame
 import uk.co.rafearnold.captainsonar.repository.StoredPlayer
 import uk.co.rafearnold.captainsonar.repository.UpdateStoredGameOperation
 import uk.co.rafearnold.captainsonar.repository.UserIsNotHostException
+import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
+import uk.co.rafearnold.captainsonar.shareddata.SharedLock
+import uk.co.rafearnold.captainsonar.shareddata.getDistributedLock
+import uk.co.rafearnold.captainsonar.shareddata.withLock
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReentrantLock
 import javax.inject.Inject
-import kotlin.concurrent.withLock
 
 class GameServiceImpl @Inject constructor(
     private val gameRepository: GameRepository,
     private val gameFactory: GameFactory,
     private val playerFactory: PlayerFactory,
     private val gameEventFactory: GameEventFactory,
+    sharedDataService: SharedDataService,
     private val modelMapper: ModelMapper
 ) : GameService {
 
-    private val lock: Lock = ReentrantLock()
+    private val lock: SharedLock =
+        sharedDataService.getDistributedLock("uk.co.rafearnold.captainsonar.game-service.lock")
 
     private val gameEventListeners: MutableMap<String, MutableMap<String, GameListener>> = ConcurrentHashMap()
 
@@ -85,8 +88,8 @@ class GameServiceImpl @Inject constructor(
         lock.withLock {
             loadGameAndConfirmHost(gameId = gameId, playerId = playerId)
             gameRepository.deleteGame(gameId = gameId)
-            gameEventListeners.remove(gameId)
             handleEvent(gameId = gameId, event = gameEventFactory.createGameDeletedEvent())
+            gameEventListeners.remove(gameId)
         }
     }
 
