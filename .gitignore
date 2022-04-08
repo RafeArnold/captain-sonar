@@ -6,3 +6,4 @@ dist/
 
 src/main/resources/application.properties
 front-end/src/config.js
+.env
