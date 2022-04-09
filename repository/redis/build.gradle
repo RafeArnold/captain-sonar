@@ -7,7 +7,9 @@ dependencies {
     implementation project(":common:config")
     implementation project(":common:shared-data")
     implementation project(":repository")
+    implementation project(":repository:session")
     implementation "com.google.inject:guice:$guice_version"
     implementation "redis.clients:jedis:$jedis_version"
     implementation "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
+    implementation "io.vertx:vertx-web:$vertx_version"
 }

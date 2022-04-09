@@ -30,6 +30,7 @@ dependencies {
     implementation project(":common")
     implementation project(":common:config")
     implementation project(":common:shared-data:hazelcast")
+    implementation project(":repository:session")
     implementation project(":repository:redis")
     implementation project(":repository:shared-data")
     implementation project(":internal-api")

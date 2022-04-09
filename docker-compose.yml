@@ -11,6 +11,10 @@ services:
       APPLICATION_PROPERTIES_PATH: ${APPLICATION_PROPERTIES_DST}
       server.port: ${APP_SERVER_PORT}
       front-end.dir: ${FRONT_END_DST}
+      repository.type: redis
+      redis.connection.host: redis-db
+      redis.connection.port: 6379
+      redis.connection.password: ${REDIS_PASS}
     volumes:
       - type: bind
         source: ${APPLICATION_PROPERTIES_SRC}
@@ -23,14 +27,14 @@ services:
     ports:
       - "${EXTERNAL_APP_SERVER_PORTS}:${APP_SERVER_PORT}"
     command: -cluster
-#    depends_on:
-#      - redis-db
-#  redis-db:
-#    image: redis:alpine
-#    volumes:
-#      - type: volume
-#        source: redis-db-data
-#        target: /data
-#    command: redis-server --appendonly yes --requirepass ${REDIS_PASS}
-#volumes:
-#  redis-db-data:
+    depends_on:
+      - redis-db
+  redis-db:
+    image: redis:alpine
+    volumes:
+      - type: volume
+        source: redis-db-data
+        target: /data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASS}
+volumes:
+  redis-db-data:
