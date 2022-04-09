@@ -18,7 +18,8 @@ abstract class AbstractRestApiV1Handler : Handler<RoutingContext> {
 
     override fun handle(ctx: RoutingContext) {
         val userId: String = sessionService.getUserId(ctx)
-        val response: Any? = handle(ctx, userId)
+        val gameId: String? = sessionService.getGameId(ctx)
+        val response: Any? = handle(ctx = ctx, userId = userId, gameId = gameId)
         ctx.response()
             .setStatusCode(HttpResponseStatus.OK.code())
             .apply {
@@ -29,7 +30,7 @@ abstract class AbstractRestApiV1Handler : Handler<RoutingContext> {
             }
     }
 
-    protected abstract fun handle(ctx: RoutingContext, userId: String): Any?
+    protected abstract fun handle(ctx: RoutingContext, userId: String, gameId: String?): Any?
 
     protected inline fun <reified T> RoutingContext.readRequestBody(): T =
         try {

@@ -9,4 +9,6 @@ interface RestApiV1SessionService {
     fun getGameId(ctx: RoutingContext): String?
 
     fun setGameId(ctx: RoutingContext, gameId: String)
+
+    fun removeGameId(ctx: RoutingContext)
 }

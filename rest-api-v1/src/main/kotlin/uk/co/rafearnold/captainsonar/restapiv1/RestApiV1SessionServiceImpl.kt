@@ -12,6 +12,10 @@ class RestApiV1SessionServiceImpl : RestApiV1SessionService {
         ctx.session().put(gameIdKey, gameId)
     }
 
+    override fun removeGameId(ctx: RoutingContext) {
+        ctx.session().remove<Any>(gameIdKey)
+    }
+
     companion object {
         private const val gameIdKey = "uk.co.rafearnold.captainsonar.game-id"
     }

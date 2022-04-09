@@ -3,13 +3,11 @@ package uk.co.rafearnold.captainsonar.restapiv1.handler
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.netty.handler.codec.http.HttpHeaderNames
 import io.netty.handler.codec.http.HttpHeaderValues
-import io.netty.handler.codec.http.HttpResponseStatus
 import io.vertx.core.Handler
 import io.vertx.core.http.HttpServerResponse
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 import uk.co.rafearnold.captainsonar.common.Register
-import uk.co.rafearnold.captainsonar.restapiv1.RestApiV1Exception
 import uk.co.rafearnold.captainsonar.restapiv1.RestApiV1Service
 import uk.co.rafearnold.captainsonar.restapiv1.RestApiV1SessionService
 import java.util.concurrent.CompletableFuture
@@ -32,12 +30,7 @@ class StreamGameRestApiV1HandlerRouteRegister @Inject constructor(
 
     override fun handle(ctx: RoutingContext) {
         val userId: String = sessionService.getUserId(ctx)
-        val gameId: String =
-            ctx.queryParam("game-id")?.firstOrNull()
-                ?: throw RestApiV1Exception(
-                    statusCode = HttpResponseStatus.BAD_REQUEST.code(),
-                    message = "No 'game-id' parameter provided"
-                )
+        val gameId: String? = sessionService.getGameId(ctx)
         val response: HttpServerResponse =
             ctx.response()
                 .setChunked(true)
@@ -49,6 +42,6 @@ class StreamGameRestApiV1HandlerRouteRegister @Inject constructor(
                 val data: String = objectMapper.writeValueAsString(it)
                 response.write("data: $data\n\n")
             }
-        response.endHandler { apiService.endStream(gameId = gameId, streamId = streamId) }
+        response.endHandler { apiService.endStream(streamId = streamId, gameId = gameId) }
     }
 }

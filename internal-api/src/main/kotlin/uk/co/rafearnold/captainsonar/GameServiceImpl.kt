@@ -2,7 +2,10 @@ package uk.co.rafearnold.captainsonar
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import uk.co.rafearnold.captainsonar.common.Register
 import uk.co.rafearnold.captainsonar.common.runAsync
+import uk.co.rafearnold.captainsonar.event.EventApiV1Service
+import uk.co.rafearnold.captainsonar.event.model.GameEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.model.Game
 import uk.co.rafearnold.captainsonar.model.GameEvent
 import uk.co.rafearnold.captainsonar.model.Player
@@ -25,19 +28,23 @@ import uk.co.rafearnold.captainsonar.shareddata.SharedLock
 import uk.co.rafearnold.captainsonar.shareddata.getDistributedLock
 import uk.co.rafearnold.captainsonar.shareddata.withLock
 import java.util.*
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class GameServiceImpl @Inject constructor(
     private val gameRepository: GameRepository,
     private val gameFactory: GameFactory,
     private val playerFactory: PlayerFactory,
     private val gameEventFactory: GameEventFactory,
+    private val eventApiService: EventApiV1Service,
     sharedDataService: SharedDataService,
     private val modelMapper: ModelMapper
-) : GameService {
+) : GameService, Register {
 
     private val lock: SharedLock =
         sharedDataService.getDistributedLock("uk.co.rafearnold.captainsonar.game-service.lock")
@@ -45,6 +52,19 @@ class GameServiceImpl @Inject constructor(
     private val gameEventListeners: MutableMap<String, MutableMap<String, GameListener>> = ConcurrentHashMap()
 
     private val listenerExecutor: Executor = Executors.newCachedThreadPool()
+
+    override fun register(): CompletableFuture<Void> =
+        CompletableFuture.runAsync {
+            eventApiService.subscribeToGameEvents { event: GameEventEventApiV1Model ->
+                val (gameId: String, gameEvent: GameEvent) = modelMapper.mapToGameEventPair(event = event)
+                sendEventToListeners(gameId = gameId, event = gameEvent)
+            }
+        }
+
+    override fun getGame(gameId: String, playerId: String): Game? {
+        val storedGame: StoredGame? = gameRepository.loadGame(gameId = gameId)
+        return storedGame?.let { modelMapper.mapToGame(gameId = gameId, storedGame = it) }
+    }
 
     override fun createGame(hostId: String, hostName: String): Game =
         lock.withLock {
@@ -55,7 +75,7 @@ class GameServiceImpl @Inject constructor(
                 gameFactory.create(id = gameId, hostId = hostId, players = players, started = false)
             val storedGame: StoredGame =
                 gameRepository.createGame(gameId = gameId, game = modelMapper.mapToStoredGame(game = game))
-            modelMapper.mapToMutableGame(gameId = gameId, storedGame = storedGame)
+            modelMapper.mapToGame(gameId = gameId, storedGame = storedGame)
         }
 
     override fun addPlayer(gameId: String, playerId: String, playerName: String): Game =
@@ -67,8 +87,8 @@ class GameServiceImpl @Inject constructor(
                 listOf(AddPlayerOperation(playerId = playerId, player = StoredPlayer(name = playerName)))
             val updatedGame: StoredGame =
                 gameRepository.updateGame(gameId = gameId, updateOperations = updateOperations)
-            val game: Game = modelMapper.mapToMutableGame(gameId = gameId, storedGame = updatedGame)
-            handleEvent(gameId = gameId, event = gameEventFactory.createPlayerAddedEvent(game = game))
+            val game: Game = modelMapper.mapToGame(gameId = gameId, storedGame = updatedGame)
+            publishEvent(gameId = gameId, event = gameEventFactory.createPlayerAddedEvent(game = game))
             return game
         }
 
@@ -79,8 +99,8 @@ class GameServiceImpl @Inject constructor(
             val updateOperations: List<UpdateStoredGameOperation> = listOf(SetStartedOperation(started = true))
             val updatedGame: StoredGame =
                 gameRepository.updateGame(gameId = gameId, updateOperations = updateOperations)
-            val game: Game = modelMapper.mapToMutableGame(gameId = gameId, storedGame = updatedGame)
-            handleEvent(gameId = gameId, event = gameEventFactory.createGameStartedEvent(game = game))
+            val game: Game = modelMapper.mapToGame(gameId = gameId, storedGame = updatedGame)
+            publishEvent(gameId = gameId, event = gameEventFactory.createGameStartedEvent(game = game))
             return game
         }
 
@@ -88,7 +108,7 @@ class GameServiceImpl @Inject constructor(
         lock.withLock {
             loadGameAndConfirmHost(gameId = gameId, playerId = playerId)
             gameRepository.deleteGame(gameId = gameId)
-            handleEvent(gameId = gameId, event = gameEventFactory.createGameDeletedEvent())
+            publishEvent(gameId = gameId, event = gameEventFactory.createGameDeletedEvent())
             gameEventListeners.remove(gameId)
         }
     }
@@ -112,7 +132,13 @@ class GameServiceImpl @Inject constructor(
     private fun loadGameOrThrow(gameId: String): StoredGame =
         gameRepository.loadGame(gameId = gameId) ?: throw NoSuchGameFoundException(gameId = gameId)
 
-    private fun handleEvent(gameId: String, event: GameEvent) {
+    private fun publishEvent(gameId: String, event: GameEvent) {
+        val model: GameEventEventApiV1Model =
+            modelMapper.mapToGameEventEventApiV1Model(gameId = gameId, event = event)
+        eventApiService.publishGameEvent(event = model)
+    }
+
+    private fun sendEventToListeners(gameId: String, event: GameEvent) {
         val listeners: MutableMap<String, GameListener> = gameEventListeners[gameId] ?: return
         for ((listenerId: String, listener: GameListener) in listeners) {
             runAsync(listenerExecutor) {

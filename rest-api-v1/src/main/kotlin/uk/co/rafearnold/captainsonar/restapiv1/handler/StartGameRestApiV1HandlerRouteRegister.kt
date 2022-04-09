@@ -24,7 +24,7 @@ class StartGameRestApiV1HandlerRouteRegister @Inject constructor(
                 .failureHandler(failureHandler)
         }
 
-    override fun handle(ctx: RoutingContext, userId: String): Any {
-        return apiService.startGame(userId = userId, ctx = ctx)
+    override fun handle(ctx: RoutingContext, userId: String, gameId: String?): Any {
+        return apiService.startGame(userId = userId, gameId = gameId)
     }
 }

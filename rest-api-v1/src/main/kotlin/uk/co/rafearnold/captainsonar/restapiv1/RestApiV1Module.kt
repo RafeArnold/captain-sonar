@@ -6,6 +6,7 @@ import com.google.inject.multibindings.Multibinder
 import uk.co.rafearnold.captainsonar.common.Register
 import uk.co.rafearnold.captainsonar.restapiv1.handler.CreateGameRestApiV1HandlerRouteRegister
 import uk.co.rafearnold.captainsonar.restapiv1.handler.EndGameRestApiV1HandlerRouteRegister
+import uk.co.rafearnold.captainsonar.restapiv1.handler.GetGameStateRestApiV1HandlerRouteRegister
 import uk.co.rafearnold.captainsonar.restapiv1.handler.JoinGameRestApiV1HandlerRouteRegister
 import uk.co.rafearnold.captainsonar.restapiv1.handler.StartGameRestApiV1HandlerRouteRegister
 import uk.co.rafearnold.captainsonar.restapiv1.handler.StreamGameRestApiV1HandlerRouteRegister
@@ -28,5 +29,6 @@ class RestApiV1Module : AbstractModule() {
         multibinder.addBinding().to(StartGameRestApiV1HandlerRouteRegister::class.java).`in`(Scopes.SINGLETON)
         multibinder.addBinding().to(EndGameRestApiV1HandlerRouteRegister::class.java).`in`(Scopes.SINGLETON)
         multibinder.addBinding().to(StreamGameRestApiV1HandlerRouteRegister::class.java).`in`(Scopes.SINGLETON)
+        multibinder.addBinding().to(GetGameStateRestApiV1HandlerRouteRegister::class.java).`in`(Scopes.SINGLETON)
     }
 }

@@ -6,7 +6,7 @@ import uk.co.rafearnold.captainsonar.model.GameEvent
 import uk.co.rafearnold.captainsonar.model.GameStartedEvent
 import uk.co.rafearnold.captainsonar.model.Player
 import uk.co.rafearnold.captainsonar.model.PlayerAddedEvent
-import uk.co.rafearnold.captainsonar.restapiv1.model.GameDeletedEventRestApiV1Model
+import uk.co.rafearnold.captainsonar.restapiv1.model.GameEndedEventRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.GameEventRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.GameStartedEventRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.GameStateRestApiV1Model
@@ -28,7 +28,7 @@ class RestApiV1ModelMapperImpl : RestApiV1ModelMapper {
 
     override fun mapToGameEventRestApiV1Model(event: GameEvent, userId: String): GameEventRestApiV1Model =
         when (event) {
-            is GameDeletedEvent -> GameDeletedEventRestApiV1Model
+            is GameDeletedEvent -> GameEndedEventRestApiV1Model
             is GameStartedEvent -> {
                 GameStartedEventRestApiV1Model(
                     gameState = mapToGameStateRestApiV1Model(game = event.game, userId = userId)

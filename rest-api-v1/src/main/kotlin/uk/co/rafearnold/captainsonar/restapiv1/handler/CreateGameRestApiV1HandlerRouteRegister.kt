@@ -25,8 +25,8 @@ class CreateGameRestApiV1HandlerRouteRegister @Inject constructor(
                 .failureHandler(failureHandler)
         }
 
-    override fun handle(ctx: RoutingContext, userId: String): Any {
+    override fun handle(ctx: RoutingContext, userId: String, gameId: String?): Any {
         val request: CreateGameRequestRestApiV1Model = ctx.readRequestBody()
-        return apiService.createGame(userId = userId, request = request, ctx = ctx)
+        return apiService.createGame(userId = userId, gameId = gameId, request = request, ctx = ctx)
     }
 }

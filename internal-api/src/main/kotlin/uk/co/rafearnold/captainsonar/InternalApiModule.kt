@@ -2,6 +2,8 @@ package uk.co.rafearnold.captainsonar
 
 import com.google.inject.AbstractModule
 import com.google.inject.Scopes
+import com.google.inject.multibindings.Multibinder
+import uk.co.rafearnold.captainsonar.common.Register
 import uk.co.rafearnold.captainsonar.model.factory.GameEventFactory
 import uk.co.rafearnold.captainsonar.model.factory.GameEventFactoryImpl
 import uk.co.rafearnold.captainsonar.model.factory.GameFactory
@@ -19,5 +21,11 @@ class InternalApiModule : AbstractModule() {
         bind(PlayerFactory::class.java).to(PlayerFactoryImpl::class.java).`in`(Scopes.SINGLETON)
         bind(GameEventFactory::class.java).to(GameEventFactoryImpl::class.java).`in`(Scopes.SINGLETON)
         bind(ModelMapper::class.java).to(ModelMapperImpl::class.java).`in`(Scopes.SINGLETON)
+        bindRegisters()
+    }
+
+    private fun bindRegisters() {
+        val multibinder: Multibinder<Register> = Multibinder.newSetBinder(binder(), Register::class.java)
+        multibinder.addBinding().to(GameServiceImpl::class.java).`in`(Scopes.SINGLETON)
     }
 }

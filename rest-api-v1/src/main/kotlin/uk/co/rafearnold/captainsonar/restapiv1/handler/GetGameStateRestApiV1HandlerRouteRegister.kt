@@ -9,7 +9,7 @@ import uk.co.rafearnold.captainsonar.restapiv1.RestApiV1SessionService
 import java.util.concurrent.CompletableFuture
 import javax.inject.Inject
 
-class EndGameRestApiV1HandlerRouteRegister @Inject constructor(
+class GetGameStateRestApiV1HandlerRouteRegister @Inject constructor(
     private val router: Router,
     private val apiService: RestApiV1Service,
     override val objectMapper: ObjectMapper,
@@ -19,13 +19,12 @@ class EndGameRestApiV1HandlerRouteRegister @Inject constructor(
 
     override fun register(): CompletableFuture<Void> =
         CompletableFuture.runAsync {
-            router.post("/v1/game/end")
+            router.get("/v1/game/state")
                 .handler(this)
                 .failureHandler(failureHandler)
         }
 
-    override fun handle(ctx: RoutingContext, userId: String, gameId: String?): Any? {
-        apiService.endGame(userId = userId, gameId = gameId)
-        return null
+    override fun handle(ctx: RoutingContext, userId: String, gameId: String?): Any {
+        return apiService.getGameState(userId = userId, gameId = gameId, ctx = ctx)
     }
 }

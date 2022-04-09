@@ -6,6 +6,7 @@ dependencies {
     implementation project(":common")
     implementation project(":common:shared-data")
     implementation project(":repository")
+    implementation project(":event-api-v1")
     implementation "com.google.inject:guice:$guice_version"
     implementation "ch.qos.logback:logback-classic:$logback_version"
 }

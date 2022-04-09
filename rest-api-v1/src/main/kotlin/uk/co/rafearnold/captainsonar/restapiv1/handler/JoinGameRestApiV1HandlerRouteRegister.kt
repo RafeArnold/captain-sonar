@@ -25,8 +25,8 @@ class JoinGameRestApiV1HandlerRouteRegister @Inject constructor(
                 .failureHandler(failureHandler)
         }
 
-    override fun handle(ctx: RoutingContext, userId: String): Any {
+    override fun handle(ctx: RoutingContext, userId: String, gameId: String?): Any {
         val request: JoinGameRequestRestApiV1Model = ctx.readRequestBody()
-        return apiService.joinGame(userId = userId, request = request, ctx = ctx)
+        return apiService.joinGame(userId = userId, gameId = gameId, request = request, ctx = ctx)
     }
 }

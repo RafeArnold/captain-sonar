@@ -4,8 +4,8 @@ sealed interface GameEventRestApiV1Model {
     val eventType: String
 }
 
-object GameDeletedEventRestApiV1Model : GameEventRestApiV1Model {
-    override val eventType: String = "game-deleted"
+object GameEndedEventRestApiV1Model : GameEventRestApiV1Model {
+    override val eventType: String = "game-ended"
 }
 
 data class GameStartedEventRestApiV1Model(
