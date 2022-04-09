@@ -3,7 +3,7 @@ const {CleanWebpackPlugin} = require('clean-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 
 module.exports = {
-    entry: './src/index.js',
+    entry: './src/index.tsx',
     output: {
         filename: 'bundle.js',
         path: path.resolve(__dirname, 'dist')
@@ -18,17 +18,18 @@ module.exports = {
                 test: /\.js$/i,
                 loader: 'babel-loader',
                 options: {
-                    presets: ['@babel/preset-env', '@babel/preset-react']
+                    presets: ['@babel/preset-env', '@babel/preset-react', '@babel/preset-typescript'],
                 }
             },
             {
-                test: /\.(eot|otf|svg|ttf|woff)$/i,
-                loader: 'file-loader',
-                options: {
-                    publicPath: '/play'
-                }
-            }
+                test: /\.tsx?$/,
+                use: 'ts-loader',
+                exclude: /node_modules/,
+            },
         ]
+    },
+    resolve: {
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
     },
     plugins: [
         new HtmlWebpackPlugin({
