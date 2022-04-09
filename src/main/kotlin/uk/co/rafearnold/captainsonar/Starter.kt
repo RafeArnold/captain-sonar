@@ -15,7 +15,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import uk.co.rafearnold.captainsonar.common.toCompletableFuture
 import uk.co.rafearnold.captainsonar.config.ConfigRetrieverProvider
-import uk.co.rafearnold.captainsonar.event.EventApiV1Module
+import uk.co.rafearnold.captainsonar.eventapiv1.EventApiV1Module
 import uk.co.rafearnold.captainsonar.guice.GuiceVerticleFactory
 import uk.co.rafearnold.captainsonar.guice.MainModule
 import uk.co.rafearnold.captainsonar.repository.RedisRepositoryModule

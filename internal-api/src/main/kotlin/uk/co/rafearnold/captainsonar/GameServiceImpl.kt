@@ -8,8 +8,8 @@ import uk.co.rafearnold.captainsonar.common.PlayerAlreadyJoinedGameException
 import uk.co.rafearnold.captainsonar.common.Register
 import uk.co.rafearnold.captainsonar.common.UserIsNotHostException
 import uk.co.rafearnold.captainsonar.common.runAsync
-import uk.co.rafearnold.captainsonar.event.EventApiV1Service
-import uk.co.rafearnold.captainsonar.event.model.GameEventEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapiv1.EventApiV1Service
+import uk.co.rafearnold.captainsonar.eventapiv1.model.GameEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.model.Game
 import uk.co.rafearnold.captainsonar.model.GameEvent
 import uk.co.rafearnold.captainsonar.model.Player

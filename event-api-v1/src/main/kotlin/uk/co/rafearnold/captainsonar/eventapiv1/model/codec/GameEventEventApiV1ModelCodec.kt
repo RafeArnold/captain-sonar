@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.event.model.codec
+package uk.co.rafearnold.captainsonar.eventapiv1.model.codec
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.vertx.core.Vertx
@@ -6,7 +6,7 @@ import io.vertx.core.buffer.Buffer
 import io.vertx.core.eventbus.MessageCodec
 import io.vertx.core.eventbus.impl.codecs.StringMessageCodec
 import uk.co.rafearnold.captainsonar.common.Register
-import uk.co.rafearnold.captainsonar.event.model.GameEventEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapiv1.model.GameEventEventApiV1Model
 import java.util.concurrent.CompletableFuture
 import javax.inject.Inject
 import javax.inject.Singleton

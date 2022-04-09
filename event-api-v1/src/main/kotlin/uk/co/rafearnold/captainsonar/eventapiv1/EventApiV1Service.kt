@@ -1,6 +1,6 @@
-package uk.co.rafearnold.captainsonar.event
+package uk.co.rafearnold.captainsonar.eventapiv1
 
-import uk.co.rafearnold.captainsonar.event.model.GameEventEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapiv1.model.GameEventEventApiV1Model
 
 interface EventApiV1Service {
 

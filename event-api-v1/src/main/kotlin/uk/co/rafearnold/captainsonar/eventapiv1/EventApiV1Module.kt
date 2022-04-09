@@ -1,10 +1,10 @@
-package uk.co.rafearnold.captainsonar.event
+package uk.co.rafearnold.captainsonar.eventapiv1
 
 import com.google.inject.AbstractModule
 import com.google.inject.Scopes
 import com.google.inject.multibindings.Multibinder
 import uk.co.rafearnold.captainsonar.common.Register
-import uk.co.rafearnold.captainsonar.event.model.codec.GameEventEventApiV1ModelCodec
+import uk.co.rafearnold.captainsonar.eventapiv1.model.codec.GameEventEventApiV1ModelCodec
 
 class EventApiV1Module : AbstractModule() {
 

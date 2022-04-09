@@ -1,11 +1,11 @@
 package uk.co.rafearnold.captainsonar.model.mapper
 
-import uk.co.rafearnold.captainsonar.event.model.GameDeletedEventEventApiV1Model
-import uk.co.rafearnold.captainsonar.event.model.GameEventApiV1Model
-import uk.co.rafearnold.captainsonar.event.model.GameEventEventApiV1Model
-import uk.co.rafearnold.captainsonar.event.model.GameStartedEventEventApiV1Model
-import uk.co.rafearnold.captainsonar.event.model.PlayerAddedEventEventApiV1Model
-import uk.co.rafearnold.captainsonar.event.model.PlayerEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapiv1.model.GameDeletedEventEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapiv1.model.GameEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapiv1.model.GameEventEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapiv1.model.GameStartedEventEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapiv1.model.PlayerAddedEventEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapiv1.model.PlayerEventApiV1Model
 import uk.co.rafearnold.captainsonar.model.Game
 import uk.co.rafearnold.captainsonar.model.GameDeletedEvent
 import uk.co.rafearnold.captainsonar.model.GameEvent

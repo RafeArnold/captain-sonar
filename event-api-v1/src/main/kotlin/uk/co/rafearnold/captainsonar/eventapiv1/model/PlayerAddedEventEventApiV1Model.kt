@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.event.model
+package uk.co.rafearnold.captainsonar.eventapiv1.model
 
 import com.fasterxml.jackson.annotation.JsonTypeName
 
