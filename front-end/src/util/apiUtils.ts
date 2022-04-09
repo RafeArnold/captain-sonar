@@ -25,12 +25,21 @@ export function subscribeToGameEvents(eventHandler: (gameEvent: GameEvent) => vo
     eventSource.onmessage = event => eventHandler(JSON.parse(event.data))
 }
 
-function doRequest({path, method, body, queryParams}: Request) {
+function doRequest(request: Request) {
+    const {path, method, body, queryParams} = request
     const init: RequestInit = {method: method}
     if (body) {
         init["body"] = JSON.stringify(body)
     }
     return window.fetch(constructUrl(path, queryParams), init)
+        .then(res =>
+            res.ok ?
+                res :
+                res.text()
+                    .then(text => {
+                        throw new Error(`bad response received for request ${JSON.stringify(request)}: ${res.status} ${text}`)
+                    })
+        )
 }
 
 function constructUrl(path: string, queryParams?: Map<string, string>): string {
