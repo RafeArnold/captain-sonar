@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.repository
+package uk.co.rafearnold.captainsonar.common
 
 sealed class IllegalGameStateException : IllegalStateException()
 
