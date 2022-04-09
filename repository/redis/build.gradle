@@ -3,6 +3,7 @@ plugins {
 }
 
 dependencies {
+    implementation project(":common")
     implementation project(":common:config")
     implementation project(":common:shared-data")
     implementation project(":repository")

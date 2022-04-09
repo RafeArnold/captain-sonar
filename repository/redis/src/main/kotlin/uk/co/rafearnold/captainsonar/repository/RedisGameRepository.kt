@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.Response
 import redis.clients.jedis.Transaction
+import uk.co.rafearnold.captainsonar.common.GameAlreadyExistsException
+import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
 import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
 import uk.co.rafearnold.captainsonar.shareddata.SharedLock
 import uk.co.rafearnold.captainsonar.shareddata.getDistributedLock
