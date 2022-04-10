@@ -29,15 +29,12 @@ class ModelMapperImpl @Inject constructor(
         gameFactory.create(
             id = gameId,
             hostId = storedGame.hostId,
-            players = storedGame.players
-                .mapValues { (playerId: String, storedPlayer: StoredPlayer) ->
-                    mapToPlayer(playerId = playerId, storedPlayer = storedPlayer)
-                },
+            players = storedGame.players.mapValues { (_: String, storedPlayer: StoredPlayer) -> mapToPlayer(storedPlayer = storedPlayer) },
             started = storedGame.started
         )
 
-    private fun mapToPlayer(playerId: String, storedPlayer: StoredPlayer) =
-        playerFactory.create(id = playerId, name = storedPlayer.name)
+    private fun mapToPlayer(storedPlayer: StoredPlayer) =
+        playerFactory.create(name = storedPlayer.name)
 
     override fun mapToStoredGame(game: Game): StoredGame =
         StoredGame(
@@ -64,7 +61,6 @@ class ModelMapperImpl @Inject constructor(
 
     private fun mapToGameEventApiV1Model(game: Game): GameEventApiV1Model =
         GameEventApiV1Model(
-            id = game.id,
             hostId = game.hostId,
             players = game.players.mapValues { (_, player: Player) -> mapToPlayerEventApiV1Model(player = player) },
             started = game.started
@@ -72,31 +68,33 @@ class ModelMapperImpl @Inject constructor(
 
     private fun mapToPlayerEventApiV1Model(player: Player): PlayerEventApiV1Model =
         PlayerEventApiV1Model(
-            id = player.id,
             name = player.name
         )
 
     override fun mapToGameEventPair(event: GameEventEventApiV1Model): Pair<String, GameEvent> =
-        event.gameId to mapToGameEvent(event)
+        event.gameId to mapToGameEvent(gameId = event.gameId, event = event)
 
-    private fun mapToGameEvent(event: GameEventEventApiV1Model): GameEvent =
+    private fun mapToGameEvent(gameId: String, event: GameEventEventApiV1Model): GameEvent =
         when (event) {
             is GameDeletedEventEventApiV1Model -> gameEventFactory.createGameDeletedEvent()
-            is GameStartedEventEventApiV1Model -> gameEventFactory.createGameStartedEvent(game = mapToGame(game = event.game))
-            is PlayerAddedEventEventApiV1Model -> gameEventFactory.createPlayerAddedEvent(game = mapToGame(game = event.game))
+            is GameStartedEventEventApiV1Model -> {
+                gameEventFactory.createGameStartedEvent(game = mapToGame(gameId = gameId, game = event.game))
+            }
+            is PlayerAddedEventEventApiV1Model -> {
+                gameEventFactory.createPlayerAddedEvent(game = mapToGame(gameId = gameId, game = event.game))
+            }
         }
 
-    private fun mapToGame(game: GameEventApiV1Model): Game =
+    private fun mapToGame(gameId: String, game: GameEventApiV1Model): Game =
         gameFactory.create(
-            id = game.id,
+            id = gameId,
             hostId = game.hostId,
-            players = game.players.mapValues { (_, player: PlayerEventApiV1Model) -> mapToPlayer(player = player) },
+            players = game.players.mapValues { (_: String, player: PlayerEventApiV1Model) -> mapToPlayer(player = player) },
             started = game.started
         )
 
     private fun mapToPlayer(player: PlayerEventApiV1Model): Player =
         playerFactory.create(
-            id = player.id,
             name = player.name
         )
 }

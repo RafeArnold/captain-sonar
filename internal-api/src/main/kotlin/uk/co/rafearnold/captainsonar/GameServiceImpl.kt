@@ -70,7 +70,7 @@ class GameServiceImpl @Inject constructor(
     override fun createGame(hostId: String, hostName: String): Game =
         lock.withLock {
             val gameId: String = UUID.randomUUID().toString()
-            val host: Player = playerFactory.create(id = hostId, name = hostName)
+            val host: Player = playerFactory.create(name = hostName)
             val players: Map<String, Player> = mapOf(hostId to host)
             val game: Game =
                 gameFactory.create(id = gameId, hostId = hostId, players = players, started = false)

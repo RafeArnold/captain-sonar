@@ -100,18 +100,17 @@ class RabbitmqEventApiV1ServiceTest {
             PlayerAddedEventEventApiV1Model(
                 gameId = "test_gameId1",
                 game = GameEventApiV1Model(
-                    id = "test_gameId2",
                     hostId = "test_hostId1",
                     players = mapOf(
-                        "test_playerId1" to PlayerEventApiV1Model(id = "test_playerId2", name = "test_playerName1"),
-                        "test_playerId3" to PlayerEventApiV1Model(id = "test_playerId3", name = "test_playerName2")
+                        "test_playerId1" to PlayerEventApiV1Model(name = "test_playerName1"),
+                        "test_playerId3" to PlayerEventApiV1Model(name = "test_playerName2"),
                     ),
                     started = false
                 )
             )
         eventService.publishGameEvent(event = event1)
         val expectedSerializedEvent1 =
-            """{"event-type":"player-added","gameId":"test_gameId1","game":{"id":"test_gameId2","hostId":"test_hostId1","players":{"test_playerId1":{"id":"test_playerId2","name":"test_playerName1"},"test_playerId3":{"id":"test_playerId3","name":"test_playerName2"}},"started":false}}"""
+            """{"event-type":"player-added","gameId":"test_gameId1","game":{"hostId":"test_hostId1","players":{"test_playerId1":{"name":"test_playerName1"},"test_playerId3":{"name":"test_playerName2"}},"started":false}}"""
 
         val expectedConsumer1Messages1: Set<String> = setOf(expectedSerializedEvent1)
         CompletableFuture.runAsync { while (consumer1Messages.size != expectedConsumer1Messages1.size); }
@@ -129,18 +128,17 @@ class RabbitmqEventApiV1ServiceTest {
             GameStartedEventEventApiV1Model(
                 gameId = "test_gameId3",
                 game = GameEventApiV1Model(
-                    id = "test_gameId3",
                     hostId = "test_hostId2",
                     players = mapOf(
-                        "test_playerId4" to PlayerEventApiV1Model(id = "test_playerId5", name = "test_playerName3"),
-                        "test_playerId5" to PlayerEventApiV1Model(id = "test_playerId3", name = "test_playerName4")
+                        "test_playerId4" to PlayerEventApiV1Model(name = "test_playerName3"),
+                        "test_playerId5" to PlayerEventApiV1Model(name = "test_playerName4"),
                     ),
                     started = true
                 )
             )
         eventService.publishGameEvent(event = event2)
         val expectedSerializedEvent2 =
-            """{"event-type":"game-started","gameId":"test_gameId3","game":{"id":"test_gameId3","hostId":"test_hostId2","players":{"test_playerId4":{"id":"test_playerId5","name":"test_playerName3"},"test_playerId5":{"id":"test_playerId3","name":"test_playerName4"}},"started":true}}"""
+            """{"event-type":"game-started","gameId":"test_gameId3","game":{"hostId":"test_hostId2","players":{"test_playerId4":{"name":"test_playerName3"},"test_playerId5":{"name":"test_playerName4"}},"started":true}}"""
 
         val expectedConsumer1Messages2: Set<String> = setOf(expectedSerializedEvent1, expectedSerializedEvent2)
         CompletableFuture.runAsync { while (consumer1Messages.size != expectedConsumer1Messages2.size); }

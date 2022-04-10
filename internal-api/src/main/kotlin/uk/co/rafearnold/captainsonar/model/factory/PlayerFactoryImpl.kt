@@ -5,6 +5,6 @@ import uk.co.rafearnold.captainsonar.model.PlayerImpl
 
 class PlayerFactoryImpl : PlayerFactory {
 
-    override fun create(id: String, name: String): Player =
-        PlayerImpl(id = id, name = name)
+    override fun create(name: String): Player =
+        PlayerImpl(name = name)
 }

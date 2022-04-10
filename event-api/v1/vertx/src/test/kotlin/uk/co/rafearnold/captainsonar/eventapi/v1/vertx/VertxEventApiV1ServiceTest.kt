@@ -52,11 +52,10 @@ class VertxEventApiV1ServiceTest {
             PlayerAddedEventEventApiV1Model(
                 gameId = "test_gameId1",
                 game = GameEventApiV1Model(
-                    id = "test_gameId2",
                     hostId = "test_hostId1",
                     players = mapOf(
-                        "test_playerId1" to PlayerEventApiV1Model(id = "test_playerId2", name = "test_playerName1"),
-                        "test_playerId3" to PlayerEventApiV1Model(id = "test_playerId3", name = "test_playerName2")
+                        "test_playerId1" to PlayerEventApiV1Model(name = "test_playerName1"),
+                        "test_playerId3" to PlayerEventApiV1Model(name = "test_playerName2"),
                     ),
                     started = false
                 )
@@ -79,11 +78,10 @@ class VertxEventApiV1ServiceTest {
             GameStartedEventEventApiV1Model(
                 gameId = "test_gameId3",
                 game = GameEventApiV1Model(
-                    id = "test_gameId3",
                     hostId = "test_hostId2",
                     players = mapOf(
-                        "test_playerId4" to PlayerEventApiV1Model(id = "test_playerId5", name = "test_playerName3"),
-                        "test_playerId5" to PlayerEventApiV1Model(id = "test_playerId3", name = "test_playerName4")
+                        "test_playerId4" to PlayerEventApiV1Model(name = "test_playerName3"),
+                        "test_playerId5" to PlayerEventApiV1Model(name = "test_playerName4"),
                     ),
                     started = true
                 )
