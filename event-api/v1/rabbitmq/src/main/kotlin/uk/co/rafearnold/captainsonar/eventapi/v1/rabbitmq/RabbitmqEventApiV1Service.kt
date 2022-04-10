@@ -21,16 +21,11 @@ internal class RabbitmqEventApiV1Service @Inject constructor(
     private val consumerFactory: RabbitmqGameEventEventApiV1ConsumerFactory,
 ) : EventApiV1Service, Register {
 
-    private lateinit var queueName: String
-
     override fun register(): CompletableFuture<Void> =
         CompletableFuture.runAsync {
-            log.trace("Binding queue")
+            log.trace("Declaring exchange")
             channel.exchangeDeclare(gameEventExchangeName, BuiltinExchangeType.FANOUT, true)
-            val queueName: String = channel.queueDeclare().queue
-            this.queueName = queueName
-            channel.queueBind(queueName, gameEventExchangeName, gameEventExchangeName)
-            log.trace("Queue bound")
+            log.trace("Exchange declared")
         }
 
     override fun publishGameEvent(event: GameEventEventApiV1Model) {
@@ -43,7 +38,9 @@ internal class RabbitmqEventApiV1Service @Inject constructor(
     }
 
     override fun subscribeToGameEvents(handler: GameEventEventApiV1Handler) {
-        channel.basicConsume(this.queueName, true, consumerFactory.create(eventHandler = handler))
+        val queueName: String = channel.queueDeclare().queue
+        channel.queueBind(queueName, gameEventExchangeName, gameEventExchangeName)
+        channel.basicConsume(queueName, true, consumerFactory.create(eventHandler = handler))
     }
 
     companion object {

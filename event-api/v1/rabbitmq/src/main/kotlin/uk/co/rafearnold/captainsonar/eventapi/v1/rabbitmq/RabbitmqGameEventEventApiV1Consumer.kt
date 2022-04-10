@@ -4,6 +4,8 @@ import com.rabbitmq.client.AMQP
 import com.rabbitmq.client.Channel
 import com.rabbitmq.client.DefaultConsumer
 import com.rabbitmq.client.Envelope
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import uk.co.rafearnold.captainsonar.eventapi.v1.GameEventEventApiV1Handler
 import uk.co.rafearnold.captainsonar.eventapi.v1.rabbitmq.model.codec.RabbitmqGameEventEventApiV1ModelCodec
 
@@ -19,6 +21,13 @@ internal class RabbitmqGameEventEventApiV1Consumer(
         properties: AMQP.BasicProperties?,
         body: ByteArray
     ) {
-        eventHandler.handle(codec.decode(byteArray = body))
+        runCatching {
+            eventHandler.handle(codec.decode(byteArray = body))
+            log.trace("Event handled: ${String(body, Charsets.UTF_8)}")
+        }.onFailure { log.error("Failure occurred while handling event: ${String(body, Charsets.UTF_8)}", it) }
+    }
+
+    companion object {
+        private val log: Logger = LoggerFactory.getLogger(RabbitmqGameEventEventApiV1Consumer::class.java)
     }
 }
