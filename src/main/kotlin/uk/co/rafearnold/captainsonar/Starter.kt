@@ -15,7 +15,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import uk.co.rafearnold.captainsonar.common.toCompletableFuture
 import uk.co.rafearnold.captainsonar.config.ConfigRetrieverProvider
-import uk.co.rafearnold.captainsonar.eventapiv1.EventApiV1Module
+import uk.co.rafearnold.captainsonar.eventapi.v1.RabbitmqEventApiV1Module
+import uk.co.rafearnold.captainsonar.eventapi.v1.VertxEventApiV1Module
 import uk.co.rafearnold.captainsonar.guice.GuiceVerticleFactory
 import uk.co.rafearnold.captainsonar.guice.MainModule
 import uk.co.rafearnold.captainsonar.repository.RedisRepositoryModule
@@ -35,9 +36,11 @@ class Starter : AbstractVerticle() {
                         MainModule(vertx = vertx, initialConfig = initialConfig),
                         HazelcastSharedDataModule(),
                         getRepositoryModule(config = initialConfig),
+                        // The event API module needs to be installed before the internal API
+                        // module, to ensure rabbitmq queues are bound before being subscribed to.
+                        getEventApiV1Module(config = initialConfig),
                         InternalApiModule(),
                         RestApiV1Module(),
-                        EventApiV1Module(),
                     )
                 val verticleFactory: VerticleFactory = injector.getInstance(GuiceVerticleFactory::class.java)
                 vertx.registerVerticleFactory(verticleFactory)
@@ -73,6 +76,14 @@ class Starter : AbstractVerticle() {
             "shared-data" -> SharedDataRepositoryModule()
             null -> throw IllegalArgumentException("No repository type provided")
             else -> throw IllegalArgumentException("Unrecognised repository type $repoType")
+        }
+
+    private fun getEventApiV1Module(config: JsonObject): Module =
+        when (val eventApiType: String? = config.getString("event-api.v1.type")) {
+            "vertx" -> VertxEventApiV1Module()
+            "rabbitmq" -> RabbitmqEventApiV1Module()
+            null -> throw IllegalArgumentException("No event API type provided")
+            else -> throw IllegalArgumentException("Unrecognised event API type $eventApiType")
         }
 
     private fun getVerticleDeploymentIdentifier(

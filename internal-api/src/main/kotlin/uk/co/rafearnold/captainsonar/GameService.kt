@@ -4,7 +4,7 @@ import uk.co.rafearnold.captainsonar.model.Game
 
 interface GameService {
 
-    fun getGame(gameId: String, playerId: String): Game?
+    fun getGame(gameId: String): Game?
 
     fun createGame(hostId: String, hostName: String): Game
 

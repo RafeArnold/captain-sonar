@@ -4,9 +4,8 @@ plugins {
 
 dependencies {
     implementation project(":common")
-    implementation project(":common:shared-data")
-    implementation project(":repository")
     implementation project(":event-api:v1")
+    implementation "io.vertx:vertx-core:$vertx_version"
+    implementation "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
     implementation "com.google.inject:guice:$guice_version"
-    implementation "ch.qos.logback:logback-classic:$logback_version"
 }

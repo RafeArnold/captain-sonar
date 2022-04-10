@@ -1,0 +1,7 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+dependencies {
+    compileOnly "com.fasterxml.jackson.core:jackson-annotations:$jackson_version"
+}

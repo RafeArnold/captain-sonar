@@ -36,7 +36,7 @@ class RestApiV1ServiceImpl @Inject constructor(
         if (gameId == null) {
             GetGameStateResponseRestApiV1Model(gameState = null)
         } else {
-            val game: Game? = gameService.getGame(gameId = gameId, playerId = userId)
+            val game: Game? = gameService.getGame(gameId = gameId)
             if (game == null) {
                 sessionService.removeGameId(ctx = ctx)
                 GetGameStateResponseRestApiV1Model(gameState = null)

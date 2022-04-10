@@ -8,8 +8,8 @@ import uk.co.rafearnold.captainsonar.common.PlayerAlreadyJoinedGameException
 import uk.co.rafearnold.captainsonar.common.Register
 import uk.co.rafearnold.captainsonar.common.UserIsNotHostException
 import uk.co.rafearnold.captainsonar.common.runAsync
-import uk.co.rafearnold.captainsonar.eventapiv1.EventApiV1Service
-import uk.co.rafearnold.captainsonar.eventapiv1.model.GameEventEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapi.v1.EventApiV1Service
+import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.model.Game
 import uk.co.rafearnold.captainsonar.model.GameEvent
 import uk.co.rafearnold.captainsonar.model.Player
@@ -55,13 +55,14 @@ class GameServiceImpl @Inject constructor(
 
     override fun register(): CompletableFuture<Void> =
         CompletableFuture.runAsync {
+            log.trace("Subscribing to game events")
             eventApiService.subscribeToGameEvents { event: GameEventEventApiV1Model ->
                 val (gameId: String, gameEvent: GameEvent) = modelMapper.mapToGameEventPair(event = event)
                 sendEventToListeners(gameId = gameId, event = gameEvent)
             }
         }
 
-    override fun getGame(gameId: String, playerId: String): Game? {
+    override fun getGame(gameId: String): Game? {
         val storedGame: StoredGame? = gameRepository.loadGame(gameId = gameId)
         return storedGame?.let { modelMapper.mapToGame(gameId = gameId, storedGame = it) }
     }

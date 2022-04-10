@@ -15,6 +15,11 @@ services:
       redis.connection.host: redis-db
       redis.connection.port: 6379
       redis.connection.password: ${REDIS_PASS}
+      event-api.v1.type: vertx
+#      rabbitmq.connection.host: rabbitmq
+#      rabbitmq.connection.port: 5672
+#      rabbitmq.connection.username: ${RABBIT_MQ_USER}
+#      rabbitmq.connection.password: ${RABBIT_MQ_PASS}
     volumes:
       - type: bind
         source: ${APPLICATION_PROPERTIES_SRC}
@@ -29,6 +34,7 @@ services:
     command: -cluster
     depends_on:
       - redis-db
+#      - rabbitmq
   redis-db:
     image: redis:alpine
     volumes:
@@ -36,5 +42,16 @@ services:
         source: redis-db-data
         target: /data
     command: redis-server --appendonly yes --requirepass ${REDIS_PASS}
+#  rabbitmq:
+#    image: rabbitmq:alpine
+#    hostname: rabbitmq
+#    volumes:
+#      - type: volume
+#        source: rabbitmq-data
+#        target: /var/lib/rabbitmq
+#    environment:
+#      RABBITMQ_DEFAULT_USER: ${RABBIT_MQ_USER}
+#      RABBITMQ_DEFAULT_PASS: ${RABBIT_MQ_PASS}
 volumes:
   redis-db-data:
+#  rabbitmq-data:

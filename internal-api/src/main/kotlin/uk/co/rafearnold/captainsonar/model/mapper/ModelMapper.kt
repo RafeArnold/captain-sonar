@@ -1,6 +1,6 @@
 package uk.co.rafearnold.captainsonar.model.mapper
 
-import uk.co.rafearnold.captainsonar.eventapiv1.model.GameEventEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.model.Game
 import uk.co.rafearnold.captainsonar.model.GameEvent
 import uk.co.rafearnold.captainsonar.repository.StoredGame
