@@ -8,4 +8,13 @@ dependencies {
     implementation "io.vertx:vertx-core:$vertx_version"
     implementation "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
     implementation "com.google.inject:guice:$guice_version"
+
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
+    testImplementation "io.mockk:mockk:$mockk_version"
+    testImplementation "com.fasterxml.jackson.module:jackson-module-kotlin:$jackson_version"
+}
+
+test {
+    useJUnitPlatform()
 }
