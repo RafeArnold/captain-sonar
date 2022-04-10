@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.repository
+package uk.co.rafearnold.captainsonar.repository.redis
 
 import redis.clients.jedis.DefaultJedisClientConfig
 import redis.clients.jedis.Jedis

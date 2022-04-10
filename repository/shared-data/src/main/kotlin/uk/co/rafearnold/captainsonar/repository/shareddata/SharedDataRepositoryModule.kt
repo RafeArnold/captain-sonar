@@ -1,7 +1,8 @@
-package uk.co.rafearnold.captainsonar.repository
+package uk.co.rafearnold.captainsonar.repository.shareddata
 
 import com.google.inject.AbstractModule
 import com.google.inject.Scopes
+import uk.co.rafearnold.captainsonar.repository.GameRepository
 import uk.co.rafearnold.captainsonar.repository.session.SessionStoreFactory
 
 class SharedDataRepositoryModule : AbstractModule() {

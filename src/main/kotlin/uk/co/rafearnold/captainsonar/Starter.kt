@@ -19,8 +19,8 @@ import uk.co.rafearnold.captainsonar.eventapi.v1.rabbitmq.RabbitmqEventApiV1Modu
 import uk.co.rafearnold.captainsonar.eventapi.v1.vertx.VertxEventApiV1Module
 import uk.co.rafearnold.captainsonar.guice.GuiceVerticleFactory
 import uk.co.rafearnold.captainsonar.guice.MainModule
-import uk.co.rafearnold.captainsonar.repository.RedisRepositoryModule
-import uk.co.rafearnold.captainsonar.repository.SharedDataRepositoryModule
+import uk.co.rafearnold.captainsonar.repository.redis.RedisRepositoryModule
+import uk.co.rafearnold.captainsonar.repository.shareddata.SharedDataRepositoryModule
 import uk.co.rafearnold.captainsonar.restapiv1.RestApiV1Module
 import uk.co.rafearnold.captainsonar.shareddata.HazelcastSharedDataModule
 

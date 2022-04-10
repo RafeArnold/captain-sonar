@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.repository
+package uk.co.rafearnold.captainsonar.repository.shareddata
 
 import io.vertx.core.AsyncResult
 import io.vertx.core.Future
@@ -12,15 +12,18 @@ import io.vertx.ext.web.sstore.SessionStore
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import redis.clients.jedis.Jedis
-import redis.clients.jedis.params.SetParams
+import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
+import uk.co.rafearnold.captainsonar.shareddata.SharedMap
+import uk.co.rafearnold.captainsonar.shareddata.getDistributedMap
+import java.util.concurrent.TimeUnit
 
-internal class RedisSessionStore(
+internal class SharedDataSessionStore(
     vertx: Vertx,
-    private val redisClientProvider: RedisClientProvider,
+    sharedDataService: SharedDataService,
 ) : SessionStore {
 
-    private val redisClient: Jedis get() = redisClientProvider.get()
+    private val sessionMap: SharedMap<String, ByteArray> =
+        sharedDataService.getDistributedMap(name = DEFAULT_SESSION_MAP_NAME)
 
     private val retryTimeout: Long = DEFAULT_RETRY_TIMEOUT_MS
 
@@ -45,7 +48,7 @@ internal class RedisSessionStore(
 
     override fun delete(id: String, resultHandler: Handler<AsyncResult<Void>>) {
         log.trace("Deleting session with ID $id")
-        redisClient.del(sessionKey(sessionId = id))
+        sessionMap.remove(id)
         resultHandler.handle(Future.succeededFuture())
     }
 
@@ -58,29 +61,30 @@ internal class RedisSessionStore(
             return
         }
         newSession.incrementVersion()
-        redisClient.set(sessionKey(sessionId = session.id()), session.serialize(), SetParams().px(session.timeout()))
+        sessionMap.put(
+            key = session.id(),
+            value = session.serialize(),
+            ttl = session.timeout(),
+            ttlUnit = TimeUnit.MILLISECONDS
+        )
         resultHandler.handle(Future.succeededFuture())
     }
 
     override fun clear(resultHandler: Handler<AsyncResult<Void>>) {
         log.trace("Clearing all sessions")
-        val keys: Set<ByteArray> = getAllSessionKeys()
-        redisClient.del(*keys.toTypedArray())
+        sessionMap.clear()
         resultHandler.handle(Future.succeededFuture())
     }
 
     override fun size(resultHandler: Handler<AsyncResult<Int>>) {
-        resultHandler.handle(Future.succeededFuture(getAllSessionKeys().size))
+        resultHandler.handle(Future.succeededFuture(sessionMap.size))
     }
 
     override fun close() {
         // No closing operations required.
     }
 
-    private fun getSession(sessionId: String): SharedDataSessionImpl? =
-        redisClient.get(sessionKey(sessionId = sessionId))?.deserializeToSession()
-
-    private fun getAllSessionKeys(): Set<ByteArray> = redisClient.keys(sessionKey("*"))
+    private fun getSession(sessionId: String): SharedDataSessionImpl? = sessionMap[sessionId]?.deserializeToSession()
 
     private fun ByteArray.deserializeToSession(): SharedDataSessionImpl {
         val session = SharedDataSessionImpl()
@@ -95,11 +99,10 @@ internal class RedisSessionStore(
     }
 
     companion object {
-        private val log: Logger = LoggerFactory.getLogger(RedisSessionStore::class.java)
+        private val log: Logger = LoggerFactory.getLogger(SharedDataSessionStore::class.java)
 
+        private const val DEFAULT_SESSION_MAP_NAME: String =
+            "uk.co.rafearnold.captainsonar.repository.session.shared-data.map"
         private const val DEFAULT_RETRY_TIMEOUT_MS: Long = 5 * 1000
-        private const val sessionKeyPrefix: String = "uk.co.rafearnold.captainsonar.session."
-        private fun sessionKey(sessionId: String): ByteArray =
-            "$sessionKeyPrefix$sessionId".toByteArray(Charsets.UTF_8)
     }
 }

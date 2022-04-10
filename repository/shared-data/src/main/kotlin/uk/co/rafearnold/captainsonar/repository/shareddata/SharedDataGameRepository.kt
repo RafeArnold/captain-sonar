@@ -1,8 +1,11 @@
-package uk.co.rafearnold.captainsonar.repository
+package uk.co.rafearnold.captainsonar.repository.shareddata
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import uk.co.rafearnold.captainsonar.common.GameAlreadyExistsException
 import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
+import uk.co.rafearnold.captainsonar.repository.GameRepository
+import uk.co.rafearnold.captainsonar.repository.StoredGame
+import uk.co.rafearnold.captainsonar.repository.UpdateStoredGameOperation
 import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
 import uk.co.rafearnold.captainsonar.shareddata.SharedLock
 import uk.co.rafearnold.captainsonar.shareddata.SharedMap

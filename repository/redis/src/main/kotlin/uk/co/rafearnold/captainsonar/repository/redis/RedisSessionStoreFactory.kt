@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.repository
+package uk.co.rafearnold.captainsonar.repository.redis
 
 import io.vertx.core.Vertx
 import io.vertx.ext.web.sstore.SessionStore
