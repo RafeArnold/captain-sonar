@@ -4,4 +4,11 @@ plugins {
 
 dependencies {
     compileOnly "org.slf4j:slf4j-api:$slf4j_version"
+
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
+}
+
+test {
+    useJUnitPlatform()
 }
