@@ -3,6 +3,8 @@ package uk.co.rafearnold.captainsonar.restapiv1
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.vertx.ext.web.RoutingContext
 import uk.co.rafearnold.captainsonar.GameService
+import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
+import uk.co.rafearnold.captainsonar.common.PlayerAlreadyJoinedGameException
 import uk.co.rafearnold.captainsonar.model.Game
 import uk.co.rafearnold.captainsonar.restapiv1.model.CreateGameRequestRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.CreateGameResponseRestApiV1Model
@@ -71,7 +73,13 @@ class RestApiV1ServiceImpl @Inject constructor(
         lock.withLock {
             gameId.ensureGameIdIsNull()
             val game: Game =
-                gameService.addPlayer(gameId = request.gameId, playerId = userId, playerName = request.playerName)
+                try {
+                    gameService.addPlayer(gameId = request.gameId, playerId = userId, playerName = request.playerName)
+                } catch (e: PlayerAlreadyJoinedGameException) {
+                    gameService.getGame(gameId = e.gameId)
+                        ?: throw NoSuchGameFoundException(gameId = e.gameId)
+                    // TODO: Rename the player to the requested name.
+                }
             sessionService.setGameId(ctx = ctx, gameId = game.id)
             JoinGameResponseRestApiV1Model(
                 gameState = modelMapper.mapToGameStateRestApiV1Model(game = game, userId = userId)
