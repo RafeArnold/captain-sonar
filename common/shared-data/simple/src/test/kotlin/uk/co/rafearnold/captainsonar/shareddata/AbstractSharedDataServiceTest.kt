@@ -26,7 +26,7 @@ class AbstractSharedDataServiceTest {
                     TODO("Not yet implemented")
                 }
 
-                override fun <K, V> getDistributedMap(name: String): SharedMap<K, V> {
+                override fun <K : Any, V : Any> getDistributedMap(name: String): SharedMap<K, V> {
                     TODO("Not yet implemented")
                 }
             }
@@ -39,7 +39,7 @@ class AbstractSharedDataServiceTest {
                     TODO("Not yet implemented")
                 }
 
-                override fun <K, V> getDistributedMap(name: String): SharedMap<K, V> {
+                override fun <K : Any, V : Any> getDistributedMap(name: String): SharedMap<K, V> {
                     TODO("Not yet implemented")
                 }
             }
@@ -78,7 +78,7 @@ class AbstractSharedDataServiceTest {
                     TODO("Not yet implemented")
                 }
 
-                override fun <K, V> getDistributedMap(name: String): SharedMap<K, V> {
+                override fun <K : Any, V : Any> getDistributedMap(name: String): SharedMap<K, V> {
                     TODO("Not yet implemented")
                 }
             }
@@ -91,7 +91,7 @@ class AbstractSharedDataServiceTest {
                     TODO("Not yet implemented")
                 }
 
-                override fun <K, V> getDistributedMap(name: String): SharedMap<K, V> {
+                override fun <K : Any, V : Any> getDistributedMap(name: String): SharedMap<K, V> {
                     TODO("Not yet implemented")
                 }
             }
@@ -155,7 +155,7 @@ class AbstractSharedDataServiceTest {
                     TODO("Not yet implemented")
                 }
 
-                override fun <K, V> getDistributedMap(name: String): SharedMap<K, V> {
+                override fun <K : Any, V : Any> getDistributedMap(name: String): SharedMap<K, V> {
                     TODO("Not yet implemented")
                 }
             }
@@ -168,7 +168,7 @@ class AbstractSharedDataServiceTest {
                     TODO("Not yet implemented")
                 }
 
-                override fun <K, V> getDistributedMap(name: String): SharedMap<K, V> {
+                override fun <K : Any, V : Any> getDistributedMap(name: String): SharedMap<K, V> {
                     TODO("Not yet implemented")
                 }
             }
