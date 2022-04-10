@@ -1,10 +1,11 @@
-package uk.co.rafearnold.captainsonar.eventapi.v1
+package uk.co.rafearnold.captainsonar.eventapi.v1.rabbitmq
 
 import com.rabbitmq.client.AMQP
 import com.rabbitmq.client.Channel
 import com.rabbitmq.client.DefaultConsumer
 import com.rabbitmq.client.Envelope
-import uk.co.rafearnold.captainsonar.eventapi.v1.model.codec.RabbitmqGameEventEventApiV1ModelCodec
+import uk.co.rafearnold.captainsonar.eventapi.v1.GameEventEventApiV1Handler
+import uk.co.rafearnold.captainsonar.eventapi.v1.rabbitmq.model.codec.RabbitmqGameEventEventApiV1ModelCodec
 
 internal class RabbitmqGameEventEventApiV1Consumer(
     private val codec: RabbitmqGameEventEventApiV1ModelCodec,

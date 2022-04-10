@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.eventapi.v1
+package uk.co.rafearnold.captainsonar.eventapi.v1.rabbitmq
 
 import com.rabbitmq.client.Connection
 import com.rabbitmq.client.ConnectionFactory

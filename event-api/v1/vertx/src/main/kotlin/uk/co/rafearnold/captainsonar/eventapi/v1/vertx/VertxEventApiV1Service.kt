@@ -1,9 +1,11 @@
-package uk.co.rafearnold.captainsonar.eventapi.v1
+package uk.co.rafearnold.captainsonar.eventapi.v1.vertx
 
 import io.vertx.core.Vertx
 import io.vertx.core.eventbus.DeliveryOptions
+import uk.co.rafearnold.captainsonar.eventapi.v1.EventApiV1Service
+import uk.co.rafearnold.captainsonar.eventapi.v1.GameEventEventApiV1Handler
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventEventApiV1Model
-import uk.co.rafearnold.captainsonar.eventapi.v1.model.codec.VertxGameEventEventApiV1ModelCodec
+import uk.co.rafearnold.captainsonar.eventapi.v1.vertx.model.codec.VertxGameEventEventApiV1ModelCodec
 import javax.inject.Inject
 
 class VertxEventApiV1Service @Inject constructor(

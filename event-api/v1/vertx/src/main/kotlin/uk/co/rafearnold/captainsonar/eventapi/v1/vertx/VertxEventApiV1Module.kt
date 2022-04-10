@@ -1,10 +1,11 @@
-package uk.co.rafearnold.captainsonar.eventapi.v1
+package uk.co.rafearnold.captainsonar.eventapi.v1.vertx
 
 import com.google.inject.AbstractModule
 import com.google.inject.Scopes
 import com.google.inject.multibindings.Multibinder
 import uk.co.rafearnold.captainsonar.common.Register
-import uk.co.rafearnold.captainsonar.eventapi.v1.model.codec.VertxGameEventEventApiV1ModelCodec
+import uk.co.rafearnold.captainsonar.eventapi.v1.EventApiV1Service
+import uk.co.rafearnold.captainsonar.eventapi.v1.vertx.model.codec.VertxGameEventEventApiV1ModelCodec
 
 class VertxEventApiV1Module : AbstractModule() {
 

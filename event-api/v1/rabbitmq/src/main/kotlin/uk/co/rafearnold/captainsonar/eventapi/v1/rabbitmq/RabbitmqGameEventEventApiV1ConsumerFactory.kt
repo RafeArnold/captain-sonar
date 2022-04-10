@@ -1,4 +1,6 @@
-package uk.co.rafearnold.captainsonar.eventapi.v1
+package uk.co.rafearnold.captainsonar.eventapi.v1.rabbitmq
+
+import uk.co.rafearnold.captainsonar.eventapi.v1.GameEventEventApiV1Handler
 
 internal interface RabbitmqGameEventEventApiV1ConsumerFactory {
 

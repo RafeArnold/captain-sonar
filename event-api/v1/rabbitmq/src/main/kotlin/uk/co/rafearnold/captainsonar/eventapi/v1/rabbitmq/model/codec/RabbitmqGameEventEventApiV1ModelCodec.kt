@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.eventapi.v1.model.codec
+package uk.co.rafearnold.captainsonar.eventapi.v1.rabbitmq.model.codec
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventEventApiV1Model

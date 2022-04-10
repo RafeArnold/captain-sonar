@@ -1,7 +1,8 @@
-package uk.co.rafearnold.captainsonar.eventapi.v1
+package uk.co.rafearnold.captainsonar.eventapi.v1.rabbitmq
 
 import com.rabbitmq.client.Channel
-import uk.co.rafearnold.captainsonar.eventapi.v1.model.codec.RabbitmqGameEventEventApiV1ModelCodec
+import uk.co.rafearnold.captainsonar.eventapi.v1.GameEventEventApiV1Handler
+import uk.co.rafearnold.captainsonar.eventapi.v1.rabbitmq.model.codec.RabbitmqGameEventEventApiV1ModelCodec
 import javax.inject.Inject
 
 internal class RabbitmqGameEventEventApiV1ConsumerFactoryImpl @Inject constructor(

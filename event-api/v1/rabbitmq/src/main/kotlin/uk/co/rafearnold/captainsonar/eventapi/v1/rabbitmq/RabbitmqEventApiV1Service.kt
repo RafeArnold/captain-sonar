@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.eventapi.v1
+package uk.co.rafearnold.captainsonar.eventapi.v1.rabbitmq
 
 import com.rabbitmq.client.AMQP
 import com.rabbitmq.client.BuiltinExchangeType
@@ -6,8 +6,10 @@ import com.rabbitmq.client.Channel
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import uk.co.rafearnold.captainsonar.common.Register
+import uk.co.rafearnold.captainsonar.eventapi.v1.EventApiV1Service
+import uk.co.rafearnold.captainsonar.eventapi.v1.GameEventEventApiV1Handler
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventEventApiV1Model
-import uk.co.rafearnold.captainsonar.eventapi.v1.model.codec.RabbitmqGameEventEventApiV1ModelCodec
+import uk.co.rafearnold.captainsonar.eventapi.v1.rabbitmq.model.codec.RabbitmqGameEventEventApiV1ModelCodec
 import java.util.concurrent.CompletableFuture
 import javax.inject.Inject
 import javax.inject.Singleton

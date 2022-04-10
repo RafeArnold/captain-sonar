@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.eventapi.v1
+package uk.co.rafearnold.captainsonar.eventapi.v1.rabbitmq
 
 import com.google.inject.AbstractModule
 import com.google.inject.Scopes
@@ -6,6 +6,7 @@ import com.google.inject.multibindings.Multibinder
 import com.rabbitmq.client.Channel
 import com.rabbitmq.client.Connection
 import uk.co.rafearnold.captainsonar.common.Register
+import uk.co.rafearnold.captainsonar.eventapi.v1.EventApiV1Service
 
 class RabbitmqEventApiV1Module : AbstractModule() {
 
