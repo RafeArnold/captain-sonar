@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.repository
+package uk.co.rafearnold.captainsonar.repository.redis
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -19,8 +19,11 @@ import org.testcontainers.utility.DockerImageName
 import redis.clients.jedis.Jedis
 import uk.co.rafearnold.captainsonar.common.GameAlreadyExistsException
 import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
-import uk.co.rafearnold.captainsonar.repository.redis.RedisClientProvider
-import uk.co.rafearnold.captainsonar.repository.redis.RedisGameRepository
+import uk.co.rafearnold.captainsonar.repository.AddPlayerOperation
+import uk.co.rafearnold.captainsonar.repository.SetStartedOperation
+import uk.co.rafearnold.captainsonar.repository.StoredGame
+import uk.co.rafearnold.captainsonar.repository.StoredPlayer
+import uk.co.rafearnold.captainsonar.repository.UpdateStoredGameOperation
 import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
 import uk.co.rafearnold.captainsonar.shareddata.SimpleClusterManager
 

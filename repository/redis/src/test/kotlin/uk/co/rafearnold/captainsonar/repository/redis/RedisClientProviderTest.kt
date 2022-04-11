@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.repository
+package uk.co.rafearnold.captainsonar.repository.redis
 
 import io.mockk.clearAllMocks
 import io.mockk.every
@@ -18,7 +18,6 @@ import uk.co.rafearnold.captainsonar.config.ObservableMap
 import uk.co.rafearnold.captainsonar.config.ObservableMutableMap
 import uk.co.rafearnold.captainsonar.config.ObservableMutableMapImpl
 import uk.co.rafearnold.captainsonar.config.addListener
-import uk.co.rafearnold.captainsonar.repository.redis.RedisClientProvider
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap

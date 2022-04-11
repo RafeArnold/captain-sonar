@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.repository
+package uk.co.rafearnold.captainsonar.repository.redis
 
 import io.mockk.clearAllMocks
 import io.mockk.every
@@ -22,8 +22,6 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
 import redis.clients.jedis.Jedis
 import uk.co.rafearnold.captainsonar.common.toCompletableFuture
-import uk.co.rafearnold.captainsonar.repository.redis.RedisClientProvider
-import uk.co.rafearnold.captainsonar.repository.redis.RedisSessionStore
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInput
