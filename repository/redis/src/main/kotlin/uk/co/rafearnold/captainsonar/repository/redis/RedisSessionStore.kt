@@ -45,7 +45,7 @@ internal class RedisSessionStore(
 
     override fun delete(id: String, resultHandler: Handler<AsyncResult<Void>>) {
         log.trace("Deleting session with ID $id")
-        redisClient.del(sessionKey(sessionId = id))
+        redisClient.use { it.del(sessionKey(sessionId = id)) }
         resultHandler.handle(Future.succeededFuture())
     }
 
@@ -58,14 +58,16 @@ internal class RedisSessionStore(
             return
         }
         newSession.incrementVersion()
-        redisClient.set(sessionKey(sessionId = session.id()), session.serialize(), SetParams().px(session.timeout()))
+        redisClient.use {
+            it.set(sessionKey(sessionId = session.id()), session.serialize(), SetParams().px(session.timeout()))
+        }
         resultHandler.handle(Future.succeededFuture())
     }
 
     override fun clear(resultHandler: Handler<AsyncResult<Void>>) {
         log.trace("Clearing all sessions")
         val keys: Set<ByteArray> = getAllSessionKeys()
-        redisClient.del(*keys.toTypedArray())
+        redisClient.use { it.del(*keys.toTypedArray()) }
         resultHandler.handle(Future.succeededFuture())
     }
 
@@ -78,9 +80,9 @@ internal class RedisSessionStore(
     }
 
     private fun getSession(sessionId: String): SharedDataSessionImpl? =
-        redisClient.get(sessionKey(sessionId = sessionId))?.deserializeToSession()
+        redisClient.use { it.get(sessionKey(sessionId = sessionId))?.deserializeToSession() }
 
-    private fun getAllSessionKeys(): Set<ByteArray> = redisClient.keys(sessionKey("*"))
+    private fun getAllSessionKeys(): Set<ByteArray> = redisClient.use { it.keys(sessionKey("*")) }
 
     private fun ByteArray.deserializeToSession(): SharedDataSessionImpl {
         val session = SharedDataSessionImpl()

@@ -28,13 +28,14 @@ class RedisGameRepository @Inject constructor(
 
     override fun createGame(gameId: String, game: StoredGame): StoredGame =
         lock.withLock {
-            val alreadyExists: Boolean = redisClient.setnx(gameIdKey(gameId = gameId), game.serialize()) == 0L
+            val alreadyExists: Boolean =
+                redisClient.use { it.setnx(gameIdKey(gameId = gameId), game.serialize()) } == 0L
             if (alreadyExists) throw GameAlreadyExistsException(gameId = gameId)
             return game
         }
 
     override fun loadGame(gameId: String): StoredGame? =
-        lock.withLock { redisClient.get(gameIdKey(gameId = gameId)).deserializeStoredGame() }
+        lock.withLock { redisClient.use { it.get(gameIdKey(gameId = gameId)) }.deserializeStoredGame() }
 
     override fun updateGame(gameId: String, updateOperations: Iterable<UpdateStoredGameOperation>): StoredGame =
         lock.withLock {
@@ -43,18 +44,20 @@ class RedisGameRepository @Inject constructor(
                 updateOperations.fold(initialGame) { game: StoredGame, operation: UpdateStoredGameOperation ->
                     operation.update(game)
                 }
-            redisClient.set(gameIdKey(gameId = gameId), updatedGame.serialize())
+            redisClient.use { it.set(gameIdKey(gameId = gameId), updatedGame.serialize()) }
             updatedGame
         }
 
     override fun deleteGame(gameId: String): StoredGame? =
         lock.withLock {
-            redisClient.multi().use { transaction: Transaction ->
-                val gameIdKey: String = gameIdKey(gameId = gameId)
-                val getResponse: Response<String?> = transaction.get(gameIdKey)
-                transaction.del(gameIdKey)
-                transaction.exec()
-                getResponse.get()?.deserializeStoredGame()
+            redisClient.use {
+                it.multi().use { transaction: Transaction ->
+                    val gameIdKey: String = gameIdKey(gameId = gameId)
+                    val getResponse: Response<String?> = transaction.get(gameIdKey)
+                    transaction.del(gameIdKey)
+                    transaction.exec()
+                    getResponse.get()?.deserializeStoredGame()
+                }
             }
         }
 
