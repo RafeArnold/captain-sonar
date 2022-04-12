@@ -29,12 +29,23 @@ services:
         target: ${WORKING_DIR}/${FRONT_END_DST}
     deploy:
       replicas: 3
-    ports:
-      - "${EXTERNAL_APP_SERVER_PORTS}:${APP_SERVER_PORT}"
+    expose:
+      - ${APP_SERVER_PORT}
     command: -cluster
     depends_on:
       - redis-db
 #      - rabbitmq
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - type: bind
+        source: ./nginx.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+    ports:
+      - "9000:8080"
+    depends_on:
+      - app
   redis-db:
     image: redis:alpine
     volumes:
