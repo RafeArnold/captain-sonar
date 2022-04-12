@@ -13,4 +13,6 @@ class SimpleSharedAtomicLong(
 
     override fun compareAndSet(expectValue: Long, newValue: Long): Boolean =
         wrappedLong.compareAndSet(expectValue, newValue)
+
+    override fun getAndIncrement(): Long = wrappedLong.getAndIncrement()
 }

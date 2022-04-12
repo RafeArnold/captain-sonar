@@ -21,6 +21,7 @@ class InternalApiModule : AbstractModule() {
         bind(PlayerFactory::class.java).to(PlayerFactoryImpl::class.java).`in`(Scopes.SINGLETON)
         bind(GameEventFactory::class.java).to(GameEventFactoryImpl::class.java).`in`(Scopes.SINGLETON)
         bind(ModelMapper::class.java).to(ModelMapperImpl::class.java).`in`(Scopes.SINGLETON)
+        bind(GameIdGenerator::class.java).to(InMemoryRandomGameIdGenerator::class.java).`in`(Scopes.SINGLETON)
         bindRegisters()
     }
 

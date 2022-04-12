@@ -54,4 +54,26 @@ class SimpleSharedAtomicLongTest {
         confirmVerified(wrapped)
         assertEquals(3, wrapper.get())
     }
+
+    @Test
+    fun `getAndIncrement delegates to the wrapped value`() {
+        val wrapped: AtomicLong = spyk(AtomicLong(7))
+        val wrapper = SimpleSharedAtomicLong(wrappedLong = wrapped)
+
+        assertEquals(7, wrapper.getAndIncrement())
+        verify(exactly = 1) {
+            wrapped.getAndIncrement()
+        }
+        confirmVerified(wrapped)
+        assertEquals(8, wrapper.get())
+
+        clearMocks(wrapped)
+
+        assertEquals(8, wrapper.getAndIncrement())
+        verify(exactly = 1) {
+            wrapped.getAndIncrement()
+        }
+        confirmVerified(wrapped)
+        assertEquals(9, wrapper.get())
+    }
 }

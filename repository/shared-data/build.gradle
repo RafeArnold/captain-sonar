@@ -11,4 +11,13 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
     implementation "io.vertx:vertx-web:$vertx_version"
     compileOnly "org.slf4j:slf4j-api:$slf4j_version"
+
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
+    testImplementation "io.mockk:mockk:$mockk_version"
+    testImplementation project(":common:shared-data:simple")
+}
+
+test {
+    useJUnitPlatform()
 }

@@ -9,4 +9,6 @@ internal class VertxSharedAtomicLong(private val counter: Counter) : SharedAtomi
 
     override fun compareAndSet(expectValue: Long, newValue: Long): Boolean =
         counter.compareAndSet(expectValue, newValue).toCompletableFuture().get()
+
+    override fun getAndIncrement(): Long = counter.andIncrement.toCompletableFuture().get()
 }

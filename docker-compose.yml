@@ -11,6 +11,7 @@ services:
       APPLICATION_PROPERTIES_PATH: ${APPLICATION_PROPERTIES_DST}
       server.port: ${APP_SERVER_PORT}
       front-end.dir: ${FRONT_END_DST}
+      game.id-generator.in-memory-random.random-seed: ${GAME_ID_GENERATOR_RANDOM_SEED}
       repository.type: redis
       redis.connection.host: redis-db
       redis.connection.port: 6379

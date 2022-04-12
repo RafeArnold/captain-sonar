@@ -8,4 +8,6 @@ class HazelcastSharedAtomicLong(private val hazelcastLong: IAtomicLong) : Shared
 
     override fun compareAndSet(expectValue: Long, newValue: Long): Boolean =
         hazelcastLong.compareAndSet(expectValue, newValue)
+
+    override fun getAndIncrement(): Long = hazelcastLong.andIncrement
 }
