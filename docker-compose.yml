@@ -24,9 +24,11 @@ services:
       - type: bind
         source: ${APPLICATION_PROPERTIES_SRC}
         target: ${WORKING_DIR}/${APPLICATION_PROPERTIES_DST}
+        read_only: true
       - type: bind
         source: ${FRONT_END_SRC}
         target: ${WORKING_DIR}/${FRONT_END_DST}
+        read_only: true
     deploy:
       replicas: 3
     expose:
