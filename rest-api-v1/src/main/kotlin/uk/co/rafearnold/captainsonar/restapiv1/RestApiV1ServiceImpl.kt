@@ -95,7 +95,7 @@ class RestApiV1ServiceImpl @Inject constructor(
         }
 
     override fun endGame(userId: String, gameId: String?) {
-        lock.withLock { gameService.deleteGame(gameId = gameId.ensureGameIdIsNonNull(), playerId = userId) }
+        lock.withLock { gameService.endGame(gameId = gameId.ensureGameIdIsNonNull(), playerId = userId) }
     }
 
     override fun streamGame(userId: String, gameId: String?, listener: RestApiV1GameListener): String =

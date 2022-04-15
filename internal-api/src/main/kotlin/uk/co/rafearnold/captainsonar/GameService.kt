@@ -12,7 +12,7 @@ interface GameService {
 
     fun startGame(gameId: String, playerId: String): Game
 
-    fun deleteGame(gameId: String, playerId: String)
+    fun endGame(gameId: String, playerId: String)
 
     fun addGameListener(gameId: String, listener: GameListener): String
 

@@ -1,13 +1,13 @@
 package uk.co.rafearnold.captainsonar.model.mapper
 
-import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameDeletedEventEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEndedEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameStartedEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.PlayerAddedEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.PlayerEventApiV1Model
 import uk.co.rafearnold.captainsonar.model.Game
-import uk.co.rafearnold.captainsonar.model.GameDeletedEvent
+import uk.co.rafearnold.captainsonar.model.GameEndedEvent
 import uk.co.rafearnold.captainsonar.model.GameEvent
 import uk.co.rafearnold.captainsonar.model.GameStartedEvent
 import uk.co.rafearnold.captainsonar.model.Player
@@ -48,7 +48,7 @@ class ModelMapperImpl @Inject constructor(
 
     override fun mapToGameEventEventApiV1Model(gameId: String, event: GameEvent): GameEventEventApiV1Model =
         when (event) {
-            is GameDeletedEvent -> GameDeletedEventEventApiV1Model(gameId = gameId)
+            is GameEndedEvent -> GameEndedEventEventApiV1Model(gameId = gameId)
             is GameStartedEvent -> GameStartedEventEventApiV1Model(
                 gameId = gameId,
                 game = mapToGameEventApiV1Model(game = event.game)
@@ -76,7 +76,7 @@ class ModelMapperImpl @Inject constructor(
 
     private fun mapToGameEvent(gameId: String, event: GameEventEventApiV1Model): GameEvent =
         when (event) {
-            is GameDeletedEventEventApiV1Model -> gameEventFactory.createGameDeletedEvent()
+            is GameEndedEventEventApiV1Model -> gameEventFactory.createGameEndedEvent()
             is GameStartedEventEventApiV1Model -> {
                 gameEventFactory.createGameStartedEvent(game = mapToGame(gameId = gameId, game = event.game))
             }

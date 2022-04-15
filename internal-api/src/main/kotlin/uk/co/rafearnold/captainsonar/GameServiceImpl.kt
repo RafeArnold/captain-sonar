@@ -106,11 +106,11 @@ class GameServiceImpl @Inject constructor(
             return game
         }
 
-    override fun deleteGame(gameId: String, playerId: String) {
+    override fun endGame(gameId: String, playerId: String) {
         lock.withLock {
             loadGameAndConfirmHost(gameId = gameId, playerId = playerId)
             gameRepository.deleteGame(gameId = gameId)
-            publishEvent(gameId = gameId, event = gameEventFactory.createGameDeletedEvent())
+            publishEvent(gameId = gameId, event = gameEventFactory.createGameEndedEvent())
             gameEventListeners.remove(gameId)
         }
     }

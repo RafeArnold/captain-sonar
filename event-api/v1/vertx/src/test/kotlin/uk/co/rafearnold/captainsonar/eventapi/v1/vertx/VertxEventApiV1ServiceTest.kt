@@ -8,7 +8,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameDeletedEventEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEndedEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameStartedEventEventApiV1Model
@@ -104,7 +104,7 @@ class VertxEventApiV1ServiceTest {
         val subscription2Events: MutableSet<GameEventEventApiV1Model> = ConcurrentHashMap.newKeySet()
         eventService.subscribeToGameEvents { subscription2Events.add(it) }
 
-        val event3: GameEventEventApiV1Model = GameDeletedEventEventApiV1Model(gameId = "test_gameId4")
+        val event3: GameEventEventApiV1Model = GameEndedEventEventApiV1Model(gameId = "test_gameId4")
         eventService.publishGameEvent(event = event3)
 
         val expectedConsumer1Messages3: Set<GameEventEventApiV1Model> = setOf(event1, event2, event3)

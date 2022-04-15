@@ -1,7 +1,7 @@
 package uk.co.rafearnold.captainsonar.restapiv1.model.mapper
 
 import uk.co.rafearnold.captainsonar.model.Game
-import uk.co.rafearnold.captainsonar.model.GameDeletedEvent
+import uk.co.rafearnold.captainsonar.model.GameEndedEvent
 import uk.co.rafearnold.captainsonar.model.GameEvent
 import uk.co.rafearnold.captainsonar.model.GameStartedEvent
 import uk.co.rafearnold.captainsonar.model.Player
@@ -28,7 +28,7 @@ class RestApiV1ModelMapperImpl : RestApiV1ModelMapper {
 
     override fun mapToGameEventRestApiV1Model(event: GameEvent, userId: String): GameEventRestApiV1Model =
         when (event) {
-            is GameDeletedEvent -> GameEndedEventRestApiV1Model
+            is GameEndedEvent -> GameEndedEventRestApiV1Model
             is GameStartedEvent -> {
                 GameStartedEventRestApiV1Model(
                     gameState = mapToGameStateRestApiV1Model(game = event.game, userId = userId)

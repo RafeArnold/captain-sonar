@@ -17,7 +17,7 @@ import org.testcontainers.containers.RabbitMQContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
-import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameDeletedEventEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEndedEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameStartedEventEventApiV1Model
@@ -156,9 +156,9 @@ class RabbitmqEventApiV1ServiceTest {
         val subscription2Events: MutableSet<GameEventEventApiV1Model> = ConcurrentHashMap.newKeySet()
         eventService.subscribeToGameEvents { subscription2Events.add(it) }
 
-        val event3: GameEventEventApiV1Model = GameDeletedEventEventApiV1Model(gameId = "test_gameId4")
+        val event3: GameEventEventApiV1Model = GameEndedEventEventApiV1Model(gameId = "test_gameId4")
         eventService.publishGameEvent(event = event3)
-        val expectedSerializedEvent3 = """{"event-type":"game-deleted","gameId":"test_gameId4"}"""
+        val expectedSerializedEvent3 = """{"event-type":"game-ended","gameId":"test_gameId4"}"""
 
         val expectedConsumer1Messages3: Set<String> =
             setOf(expectedSerializedEvent1, expectedSerializedEvent2, expectedSerializedEvent3)

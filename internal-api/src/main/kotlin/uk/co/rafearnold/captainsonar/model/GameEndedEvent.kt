@@ -1,3 +1,3 @@
 package uk.co.rafearnold.captainsonar.model
 
-interface GameDeletedEvent : GameEvent
+interface GameEndedEvent : GameEvent
