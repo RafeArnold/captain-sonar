@@ -13,27 +13,41 @@ class ConfigRetrieverProvider @Inject constructor(
 ) : Provider<ConfigRetriever> {
 
     override fun get(): ConfigRetriever {
-        val propertiesFilepath: String =
+        val retrieverOptions = ConfigRetrieverOptions()
+
+        val propertiesFilepath: String? =
             System.getProperty("application.properties.path")
                 ?: System.getenv("APPLICATION_PROPERTIES_PATH")
-        val propertiesFileStoreOptions: ConfigStoreOptions =
+        if (propertiesFilepath != null) {
+            val propertiesFileStoreOptions: ConfigStoreOptions =
+                ConfigStoreOptions()
+                    .setType("file")
+                    .setFormat("properties")
+                    .setConfig(JsonObject().put("path", propertiesFilepath).put(rawDataConfigName, true))
+            retrieverOptions.addStore(propertiesFileStoreOptions)
+        }
+
+        val systemPropertiesStoreOptions: ConfigStoreOptions =
             ConfigStoreOptions()
-                .setType("file")
-                .setFormat("properties")
-                .setConfig(JsonObject().put("path", propertiesFilepath).put("raw-data", true))
+                .setType("sys")
+                .setConfig(JsonObject().put("cache", false).put(rawDataConfigName, true))
+        retrieverOptions.addStore(systemPropertiesStoreOptions)
+        val environmentPropertiesStoreOptions: ConfigStoreOptions =
+            ConfigStoreOptions()
+                .setType("env")
+                .setConfig(JsonObject().put(rawDataConfigName, true))
+        retrieverOptions.addStore(environmentPropertiesStoreOptions)
 
-        val systemPropertiesStoreOptions: ConfigStoreOptions = ConfigStoreOptions().setType("sys")
-        val envVariablesStoreOptions: ConfigStoreOptions = ConfigStoreOptions().setType("env")
-
-        val scanPeriod: Long? = System.getProperty("application.properties.scanPeriodMs")?.toLong()
-
-        val retrieverOptions: ConfigRetrieverOptions =
-            ConfigRetrieverOptions()
-                .addStore(propertiesFileStoreOptions)
-                .addStore(systemPropertiesStoreOptions)
-                .addStore(envVariablesStoreOptions)
-                .apply { if (scanPeriod != null) setScanPeriod(scanPeriod) }
+        val scanPeriod: Long? =
+            (System.getProperty("application.properties.scanPeriodMs")
+                ?: System.getenv("APPLICATION_PROPERTIES_SCAN_PERIOD_MS"))
+                ?.toLong()
+        if (scanPeriod != null) retrieverOptions.scanPeriod = scanPeriod
 
         return ConfigRetriever.create(vertx, retrieverOptions)
+    }
+
+    companion object {
+        private const val rawDataConfigName = "raw-data"
     }
 }
