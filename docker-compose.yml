@@ -8,7 +8,6 @@ services:
         VERSION: ${APP_VERSION}
         WORKING_DIR: ${WORKING_DIR}
     environment:
-      APPLICATION_PROPERTIES_PATH: ${APPLICATION_PROPERTIES_DST}
       server.port: ${APP_SERVER_PORT}
       front-end.dir: ${FRONT_END_DST}
       game.id-generator.in-memory-random.random-seed: ${GAME_ID_GENERATOR_RANDOM_SEED}
@@ -22,10 +21,6 @@ services:
 #      rabbitmq.connection.username: ${RABBIT_MQ_USER}
 #      rabbitmq.connection.password: ${RABBIT_MQ_PASS}
     volumes:
-      - type: bind
-        source: ${APPLICATION_PROPERTIES_SRC}
-        target: ${WORKING_DIR}/${APPLICATION_PROPERTIES_DST}
-        read_only: true
       - type: bind
         source: ${FRONT_END_SRC}
         target: ${WORKING_DIR}/${FRONT_END_DST}
