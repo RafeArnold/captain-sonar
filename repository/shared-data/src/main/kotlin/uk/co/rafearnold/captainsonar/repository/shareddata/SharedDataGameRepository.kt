@@ -12,6 +12,7 @@ import uk.co.rafearnold.captainsonar.shareddata.SharedMap
 import uk.co.rafearnold.captainsonar.shareddata.getDistributedLock
 import uk.co.rafearnold.captainsonar.shareddata.getDistributedMap
 import uk.co.rafearnold.captainsonar.shareddata.withLock
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class SharedDataGameRepository @Inject constructor(
@@ -25,9 +26,15 @@ class SharedDataGameRepository @Inject constructor(
     private val lock: SharedLock =
         sharedDataService.getDistributedLock("uk.co.rafearnold.captainsonar.repository.shared-data.lock")
 
-    override fun createGame(gameId: String, game: StoredGame): StoredGame =
+    override fun createGame(gameId: String, game: StoredGame, ttl: Long, ttlUnit: TimeUnit): StoredGame =
         lock.withLock {
-            val alreadyExists: Boolean = map.putIfAbsent(gameIdKey(gameId = gameId), game.serialize()) != null
+            val alreadyExists: Boolean =
+                map.putIfAbsent(
+                    key = gameIdKey(gameId = gameId),
+                    value = game.serialize(),
+                    ttl = ttl,
+                    ttlUnit = ttlUnit
+                ) != null
             if (alreadyExists) throw GameAlreadyExistsException(gameId = gameId)
             return game
         }
@@ -35,14 +42,19 @@ class SharedDataGameRepository @Inject constructor(
     override fun loadGame(gameId: String): StoredGame? =
         lock.withLock { map[gameIdKey(gameId = gameId)]?.deserializeStoredGame() }
 
-    override fun updateGame(gameId: String, updateOperations: Iterable<UpdateStoredGameOperation>): StoredGame =
+    override fun updateGame(
+        gameId: String,
+        updateOperations: Iterable<UpdateStoredGameOperation>,
+        ttl: Long,
+        ttlUnit: TimeUnit
+    ): StoredGame =
         lock.withLock {
             val initialGame: StoredGame = loadGame(gameId = gameId) ?: throw NoSuchGameFoundException(gameId = gameId)
             val updatedGame: StoredGame =
                 updateOperations.fold(initialGame) { game: StoredGame, operation: UpdateStoredGameOperation ->
                     operation.update(game)
                 }
-            map[gameIdKey(gameId = gameId)] = updatedGame.serialize()
+            map.put(key = gameIdKey(gameId = gameId), value = updatedGame.serialize(), ttl = ttl, ttlUnit = ttlUnit)
             updatedGame
         }
 

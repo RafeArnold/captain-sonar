@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.Response
 import redis.clients.jedis.Transaction
+import redis.clients.jedis.params.SetParams
 import uk.co.rafearnold.captainsonar.common.GameAlreadyExistsException
 import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
 import uk.co.rafearnold.captainsonar.repository.GameRepository
@@ -13,6 +14,7 @@ import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
 import uk.co.rafearnold.captainsonar.shareddata.SharedLock
 import uk.co.rafearnold.captainsonar.shareddata.getDistributedLock
 import uk.co.rafearnold.captainsonar.shareddata.withLock
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class RedisGameRepository @Inject constructor(
@@ -26,25 +28,40 @@ class RedisGameRepository @Inject constructor(
     private val lock: SharedLock =
         sharedDataService.getDistributedLock("uk.co.rafearnold.captainsonar.repository.redis.lock")
 
-    override fun createGame(gameId: String, game: StoredGame): StoredGame =
+    override fun createGame(gameId: String, game: StoredGame, ttl: Long, ttlUnit: TimeUnit): StoredGame =
         lock.withLock {
-            val alreadyExists: Boolean =
-                redisClient.use { it.setnx(gameIdKey(gameId = gameId), game.serialize()) } == 0L
-            if (alreadyExists) throw GameAlreadyExistsException(gameId = gameId)
+            val existingValue: String? =
+                redisClient.use {
+                    it.multi().use { transaction: Transaction ->
+                        val gameIdKey: String = gameIdKey(gameId = gameId)
+                        val getResponse: Response<String> = transaction.get(gameIdKey)
+                        val setParams: SetParams = SetParams().nx().px(ttlUnit.toMillis(ttl))
+                        transaction.set(gameIdKey, game.serialize(), setParams)
+                        transaction.exec()
+                        getResponse.get()
+                    }
+                }
+            if (existingValue != null) throw GameAlreadyExistsException(gameId = gameId)
             return game
         }
 
     override fun loadGame(gameId: String): StoredGame? =
         lock.withLock { redisClient.use { it.get(gameIdKey(gameId = gameId)) }.deserializeStoredGame() }
 
-    override fun updateGame(gameId: String, updateOperations: Iterable<UpdateStoredGameOperation>): StoredGame =
+    override fun updateGame(
+        gameId: String,
+        updateOperations: Iterable<UpdateStoredGameOperation>,
+        ttl: Long,
+        ttlUnit: TimeUnit
+    ): StoredGame =
         lock.withLock {
             val initialGame: StoredGame = loadGame(gameId = gameId) ?: throw NoSuchGameFoundException(gameId = gameId)
             val updatedGame: StoredGame =
                 updateOperations.fold(initialGame) { game: StoredGame, operation: UpdateStoredGameOperation ->
                     operation.update(game)
                 }
-            redisClient.use { it.set(gameIdKey(gameId = gameId), updatedGame.serialize()) }
+            val setParams: SetParams = SetParams().px(ttlUnit.toMillis(ttl))
+            redisClient.use { it.set(gameIdKey(gameId = gameId), updatedGame.serialize(), setParams) }
             updatedGame
         }
 

@@ -8,6 +8,7 @@ import uk.co.rafearnold.captainsonar.common.PlayerAlreadyJoinedGameException
 import uk.co.rafearnold.captainsonar.common.Register
 import uk.co.rafearnold.captainsonar.common.UserIsNotHostException
 import uk.co.rafearnold.captainsonar.common.runAsync
+import uk.co.rafearnold.captainsonar.config.ObservableMap
 import uk.co.rafearnold.captainsonar.eventapi.v1.EventApiV1Service
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.model.Game
@@ -32,6 +33,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -44,7 +46,8 @@ class GameServiceImpl @Inject constructor(
     private val eventApiService: EventApiV1Service,
     sharedDataService: SharedDataService,
     private val gameIdGenerator: GameIdGenerator,
-    private val modelMapper: ModelMapper
+    private val modelMapper: ModelMapper,
+    private val appConfig: ObservableMap<String, String>,
 ) : GameService, Register {
 
     private val lock: SharedLock =
@@ -76,7 +79,12 @@ class GameServiceImpl @Inject constructor(
             val game: Game =
                 gameFactory.create(id = gameId, hostId = hostId, players = players, started = false)
             val storedGame: StoredGame =
-                gameRepository.createGame(gameId = gameId, game = modelMapper.mapToStoredGame(game = game))
+                gameRepository.createGame(
+                    gameId = gameId,
+                    game = modelMapper.mapToStoredGame(game = game),
+                    ttl = ttlMs,
+                    ttlUnit = TimeUnit.MILLISECONDS,
+                )
             modelMapper.mapToGame(gameId = gameId, storedGame = storedGame)
         }
 
@@ -87,8 +95,7 @@ class GameServiceImpl @Inject constructor(
                 throw PlayerAlreadyJoinedGameException(gameId = gameId, playerId = playerId, playerName = playerName)
             val updateOperations: List<UpdateStoredGameOperation> =
                 listOf(AddPlayerOperation(playerId = playerId, player = StoredPlayer(name = playerName)))
-            val updatedGame: StoredGame =
-                gameRepository.updateGame(gameId = gameId, updateOperations = updateOperations)
+            val updatedGame: StoredGame = updateGame(gameId = gameId, updateOperations = updateOperations)
             val game: Game = modelMapper.mapToGame(gameId = gameId, storedGame = updatedGame)
             publishEvent(gameId = gameId, event = gameEventFactory.createPlayerAddedEvent(game = game))
             return game
@@ -99,8 +106,7 @@ class GameServiceImpl @Inject constructor(
             val storedGame: StoredGame = loadGameAndConfirmHost(gameId = gameId, playerId = playerId)
             if (storedGame.started) throw GameAlreadyStartedException(gameId = gameId)
             val updateOperations: List<UpdateStoredGameOperation> = listOf(SetStartedOperation(started = true))
-            val updatedGame: StoredGame =
-                gameRepository.updateGame(gameId = gameId, updateOperations = updateOperations)
+            val updatedGame: StoredGame = updateGame(gameId = gameId, updateOperations = updateOperations)
             val game: Game = modelMapper.mapToGame(gameId = gameId, storedGame = updatedGame)
             publishEvent(gameId = gameId, event = gameEventFactory.createGameStartedEvent(game = game))
             return game
@@ -152,7 +158,31 @@ class GameServiceImpl @Inject constructor(
         }
     }
 
+    private fun updateGame(gameId: String, updateOperations: List<UpdateStoredGameOperation>): StoredGame =
+        gameRepository.updateGame(
+            gameId = gameId,
+            updateOperations = updateOperations,
+            ttl = ttlMs,
+            ttlUnit = TimeUnit.MILLISECONDS,
+        )
+
+    private val ttlMs: Long
+        get() {
+            val configuredTtlString: String? = appConfig["game.ttl.ms"]
+            val ttl: Long =
+                if (configuredTtlString != null) {
+                    val configuredTtl: Long? = configuredTtlString.toLongOrNull()
+                    if (configuredTtl == null) {
+                        log.error("Configured game TTL '$configuredTtlString' is not a valid integer")
+                        DEFAULT_GAME_TTL_MS
+                    } else configuredTtl
+                } else DEFAULT_GAME_TTL_MS
+            return ttl
+        }
+
     companion object {
         private val log: Logger = LoggerFactory.getLogger(GameServiceImpl::class.java)
+
+        private const val DEFAULT_GAME_TTL_MS: Long = 60 * 60 * 1000 // 1 hour.
     }
 }

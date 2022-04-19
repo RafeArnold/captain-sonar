@@ -26,6 +26,7 @@ import uk.co.rafearnold.captainsonar.repository.StoredPlayer
 import uk.co.rafearnold.captainsonar.repository.UpdateStoredGameOperation
 import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
 import uk.co.rafearnold.captainsonar.shareddata.SimpleClusterManager
+import java.util.concurrent.TimeUnit
 
 @Testcontainers
 class RedisGameRepositoryTest {
@@ -73,12 +74,17 @@ class RedisGameRepositoryTest {
                 ),
                 started = false
             )
-        repository.createGame(gameId = gameId, game = storedGame)
+        val ttlMs: Long = 100
+        repository.createGame(gameId = gameId, game = storedGame, ttl = ttlMs, ttlUnit = TimeUnit.MILLISECONDS)
 
         val actualResult: String = redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId")
         val expectedResult =
             """{"hostId":"test_hostId","players":{"test_playerId1":{"name":"test_playerName1"},"test_playerId2":{"name":"test_playerName2"},"test_playerId3":{"name":"test_playerName3"}},"started":false}"""
         assertEquals(expectedResult, actualResult)
+
+        // Verify the game is deleted after the specified TTL.
+        Thread.sleep(ttlMs)
+        assertNull(redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId"))
     }
 
     @Test
@@ -112,11 +118,19 @@ class RedisGameRepositoryTest {
                 ),
                 started = false
             )
+        val ttlMs: Long = 100
         val exception: GameAlreadyExistsException =
-            assertThrows { repository.createGame(gameId = gameId, game = storedGame) }
+            assertThrows {
+                repository.createGame(gameId = gameId, game = storedGame, ttl = ttlMs, ttlUnit = TimeUnit.MILLISECONDS)
+            }
         assertEquals(gameId, exception.gameId)
 
         // Verify nothing changed.
+        assertEquals(setOf("uk.co.rafearnold.captainsonar.game.$gameId"), redisClient.keys("*"))
+        assertEquals(originalValue, redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId"))
+
+        // Verify the existing game is NOT deleted after the specified TTL.
+        Thread.sleep(ttlMs)
         assertEquals(setOf("uk.co.rafearnold.captainsonar.game.$gameId"), redisClient.keys("*"))
         assertEquals(originalValue, redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId"))
     }
@@ -206,7 +220,14 @@ class RedisGameRepositoryTest {
                 SetStartedOperation(started = true),
                 AddPlayerOperation(playerId = "test_playerId3", player = StoredPlayer(name = "test_playerName3")),
             )
-        val actualResult: StoredGame = repository.updateGame(gameId = gameId, updateOperations = updateOperations)
+        val ttlMs: Long = 100
+        val actualResult: StoredGame =
+            repository.updateGame(
+                gameId = gameId,
+                updateOperations = updateOperations,
+                ttl = ttlMs,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
         val expectedResult =
             StoredGame(
                 hostId = "test_hostId",
@@ -222,6 +243,10 @@ class RedisGameRepositoryTest {
         val expectedRedisResult =
             """{"hostId":"test_hostId","players":{"test_playerId1":{"name":"test_playerName1"},"test_playerId2":{"name":"test_playerName2"},"test_playerId3":{"name":"test_playerName3"}},"started":true}"""
         assertEquals(expectedRedisResult, actualRedisResult)
+
+        // Verify the game is deleted after the specified TTL.
+        Thread.sleep(ttlMs)
+        assertNull(redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId"))
     }
 
     @Test
@@ -247,8 +272,16 @@ class RedisGameRepositoryTest {
                 SetStartedOperation(started = true),
                 AddPlayerOperation(playerId = "test_playerId3", player = StoredPlayer(name = "test_playerName3")),
             )
+        val ttlMs: Long = 100
         val exception: NoSuchGameFoundException =
-            assertThrows { repository.updateGame(gameId = gameId, updateOperations = updateOperations) }
+            assertThrows {
+                repository.updateGame(
+                    gameId = gameId,
+                    updateOperations = updateOperations,
+                    ttl = ttlMs,
+                    ttlUnit = TimeUnit.MILLISECONDS,
+                )
+            }
         assertEquals(gameId, exception.gameId)
 
         // Verify nothing changed.

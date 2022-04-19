@@ -22,6 +22,9 @@ import uk.co.rafearnold.captainsonar.common.GameAlreadyStartedException
 import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
 import uk.co.rafearnold.captainsonar.common.PlayerAlreadyJoinedGameException
 import uk.co.rafearnold.captainsonar.common.UserIsNotHostException
+import uk.co.rafearnold.captainsonar.config.ObservableMap
+import uk.co.rafearnold.captainsonar.config.ObservableMutableMap
+import uk.co.rafearnold.captainsonar.config.ObservableMutableMapImpl
 import uk.co.rafearnold.captainsonar.eventapi.v1.EventApiV1Service
 import uk.co.rafearnold.captainsonar.eventapi.v1.GameEventEventApiV1Handler
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEndedEventEventApiV1Model
@@ -80,6 +83,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = mockk()
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -90,6 +94,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val eventHandlerSlot: CapturingSlot<GameEventEventApiV1Handler> = slot()
@@ -253,6 +258,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = mockk()
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -263,6 +269,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -306,6 +313,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = mockk()
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -316,6 +324,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -347,6 +356,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -357,6 +367,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -365,7 +376,14 @@ class GameServiceImplTest {
         every { gameIdGenerator.generateId() } returns gameId
         val expectedStoredGame =
             StoredGame(hostId = hostId, players = mapOf(hostId to StoredPlayer(name = hostName)), started = false)
-        every { gameRepository.createGame(gameId = gameId, game = expectedStoredGame) } returns expectedStoredGame
+        every {
+            gameRepository.createGame(
+                gameId = gameId,
+                game = expectedStoredGame,
+                ttl = 3600000,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
+        } returns expectedStoredGame
 
         val actualResult: Game = gameService.createGame(hostId = hostId, hostName = hostName)
 
@@ -379,7 +397,81 @@ class GameServiceImplTest {
         assertEquals(expectedResult, actualResult)
         verify(ordering = Ordering.SEQUENCE) {
             gameIdGenerator.generateId()
-            gameRepository.createGame(gameId = gameId, game = expectedStoredGame)
+            gameRepository.createGame(
+                gameId = gameId,
+                game = expectedStoredGame,
+                ttl = 3600000,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
+        }
+        confirmVerified(gameIdGenerator, gameRepository)
+    }
+
+    @Test
+    fun `the ttl when creating a game can be configured`() {
+        val gameRepository: GameRepository = mockk()
+        val gameFactory = GameFactoryImpl()
+        val playerFactory = PlayerFactoryImpl()
+        val gameEventFactory = GameEventFactoryImpl()
+        val eventApiService: EventApiV1Service = mockk()
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val gameIdGenerator: GameIdGenerator = mockk()
+        val modelMapper =
+            ModelMapperImpl(
+                gameFactory = gameFactory,
+                gameEventFactory = gameEventFactory,
+                playerFactory = playerFactory,
+            )
+        val appConfig: ObservableMutableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
+        val gameService =
+            GameServiceImpl(
+                gameRepository = gameRepository,
+                gameFactory = gameFactory,
+                playerFactory = playerFactory,
+                gameEventFactory = gameEventFactory,
+                eventApiService = eventApiService,
+                sharedDataService = sharedDataService,
+                gameIdGenerator = gameIdGenerator,
+                modelMapper = modelMapper,
+                appConfig = appConfig,
+            )
+
+        val gameId = "test_gameId"
+        val hostId = "test_hostId"
+        val hostName = "test_hostName"
+        every { gameIdGenerator.generateId() } returns gameId
+        val expectedStoredGame =
+            StoredGame(hostId = hostId, players = mapOf(hostId to StoredPlayer(name = hostName)), started = false)
+        val ttlMs: Long = 234535
+        appConfig["game.ttl.ms"] = ttlMs.toString()
+        every {
+            gameRepository.createGame(
+                gameId = gameId,
+                game = expectedStoredGame,
+                ttl = ttlMs,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
+        } returns expectedStoredGame
+
+        val actualResult: Game = gameService.createGame(hostId = hostId, hostName = hostName)
+
+        val expectedResult: Game =
+            GameImpl(
+                id = gameId,
+                hostId = hostId,
+                players = mapOf(hostId to PlayerImpl(name = hostName)),
+                started = false,
+            )
+        assertEquals(expectedResult, actualResult)
+        verify(ordering = Ordering.SEQUENCE) {
+            gameIdGenerator.generateId()
+            gameRepository.createGame(
+                gameId = gameId,
+                game = expectedStoredGame,
+                ttl = ttlMs,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
         }
         confirmVerified(gameIdGenerator, gameRepository)
     }
@@ -400,6 +492,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -410,6 +503,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -439,7 +533,12 @@ class GameServiceImplTest {
                 started = false,
             )
         every {
-            gameRepository.updateGame(gameId = gameId, updateOperations = expectedUpdateOperations)
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = 3600000,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
         } returns newStoredGame
 
         val actualResult: Game =
@@ -459,7 +558,106 @@ class GameServiceImplTest {
         assertEquals(expectedResult, actualResult)
         verify(ordering = Ordering.SEQUENCE) {
             gameRepository.loadGame(gameId = gameId)
-            gameRepository.updateGame(gameId = gameId, updateOperations = expectedUpdateOperations)
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = 3600000,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
+        }
+        confirmVerified(gameIdGenerator, gameRepository)
+    }
+
+    @Test
+    fun `the ttl when adding a player can be configured`() {
+        val gameRepository: GameRepository = mockk()
+        val gameFactory = GameFactoryImpl()
+        val playerFactory = PlayerFactoryImpl()
+        val gameEventFactory = GameEventFactoryImpl()
+        val eventApiService: EventApiV1Service = mockk(relaxed = true)
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val gameIdGenerator: GameIdGenerator = mockk()
+        val modelMapper =
+            ModelMapperImpl(
+                gameFactory = gameFactory,
+                gameEventFactory = gameEventFactory,
+                playerFactory = playerFactory,
+            )
+        val appConfig: ObservableMutableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
+        val gameService =
+            GameServiceImpl(
+                gameRepository = gameRepository,
+                gameFactory = gameFactory,
+                playerFactory = playerFactory,
+                gameEventFactory = gameEventFactory,
+                eventApiService = eventApiService,
+                sharedDataService = sharedDataService,
+                gameIdGenerator = gameIdGenerator,
+                modelMapper = modelMapper,
+                appConfig = appConfig,
+            )
+
+        val gameId = "test_gameId"
+        val newPlayerId = "test_newPlayerId"
+        val newPlayerName = "test_newPlayerName"
+
+        val originalStoredGame =
+            StoredGame(
+                hostId = "test_hostId",
+                players = mapOf(
+                    "test_playerId1" to StoredPlayer(name = "test_playerName1"),
+                    "test_playerId2" to StoredPlayer(name = "test_playerName2"),
+                ),
+                started = false,
+            )
+        every { gameRepository.loadGame(gameId = gameId) } returns originalStoredGame
+        val expectedUpdateOperations: List<UpdateStoredGameOperation> =
+            listOf(AddPlayerOperation(playerId = newPlayerId, player = StoredPlayer(name = newPlayerName)))
+        val newStoredGame =
+            StoredGame(
+                hostId = "test_hostId",
+                players = mapOf(
+                    "test_playerId1" to StoredPlayer(name = "test_playerName1"),
+                    "test_playerId2" to StoredPlayer(name = "test_playerName2"),
+                    newPlayerId to StoredPlayer(name = newPlayerName),
+                ),
+                started = false,
+            )
+        val ttlMs: Long = 43647
+        appConfig["game.ttl.ms"] = ttlMs.toString()
+        every {
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = ttlMs,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
+        } returns newStoredGame
+
+        val actualResult: Game =
+            gameService.addPlayer(gameId = gameId, playerId = newPlayerId, playerName = newPlayerName)
+
+        val expectedResult: Game =
+            GameImpl(
+                id = gameId,
+                hostId = "test_hostId",
+                players = mapOf(
+                    "test_playerId1" to PlayerImpl(name = "test_playerName1"),
+                    "test_playerId2" to PlayerImpl(name = "test_playerName2"),
+                    newPlayerId to PlayerImpl(name = newPlayerName),
+                ),
+                started = false,
+            )
+        assertEquals(expectedResult, actualResult)
+        verify(ordering = Ordering.SEQUENCE) {
+            gameRepository.loadGame(gameId = gameId)
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = ttlMs,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
         }
         confirmVerified(gameIdGenerator, gameRepository)
     }
@@ -480,6 +678,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -490,6 +689,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -519,7 +719,12 @@ class GameServiceImplTest {
                 started = false,
             )
         every {
-            gameRepository.updateGame(gameId = gameId, updateOperations = expectedUpdateOperations)
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = 3600000,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
         } returns newStoredGame
         val expectedEvent: GameEventEventApiV1Model =
             PlayerAddedEventEventApiV1Model(
@@ -540,7 +745,12 @@ class GameServiceImplTest {
 
         verify(ordering = Ordering.SEQUENCE) {
             gameRepository.loadGame(gameId = gameId)
-            gameRepository.updateGame(gameId = gameId, updateOperations = expectedUpdateOperations)
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = 3600000,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
             eventApiService.publishGameEvent(event = expectedEvent)
         }
         confirmVerified(gameIdGenerator, gameRepository, eventApiService)
@@ -562,6 +772,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = mockk()
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -572,6 +783,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -606,6 +818,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = mockk()
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -616,6 +829,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -663,6 +877,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -673,6 +888,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -698,7 +914,12 @@ class GameServiceImplTest {
                 started = true,
             )
         every {
-            gameRepository.updateGame(gameId = gameId, updateOperations = expectedUpdateOperations)
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = 3600000,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
         } returns newStoredGame
 
         val actualResult: Game = gameService.startGame(gameId = gameId, playerId = hostId)
@@ -716,7 +937,100 @@ class GameServiceImplTest {
         assertEquals(expectedResult, actualResult)
         verify(ordering = Ordering.SEQUENCE) {
             gameRepository.loadGame(gameId = gameId)
-            gameRepository.updateGame(gameId = gameId, updateOperations = expectedUpdateOperations)
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = 3600000,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
+        }
+        confirmVerified(gameIdGenerator, gameRepository)
+    }
+
+    @Test
+    fun `the ttl when starting a game can be configured`() {
+        val gameRepository: GameRepository = mockk()
+        val gameFactory = GameFactoryImpl()
+        val playerFactory = PlayerFactoryImpl()
+        val gameEventFactory = GameEventFactoryImpl()
+        val eventApiService: EventApiV1Service = mockk(relaxed = true)
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val gameIdGenerator: GameIdGenerator = mockk()
+        val modelMapper =
+            ModelMapperImpl(
+                gameFactory = gameFactory,
+                gameEventFactory = gameEventFactory,
+                playerFactory = playerFactory,
+            )
+        val appConfig: ObservableMutableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
+        val gameService =
+            GameServiceImpl(
+                gameRepository = gameRepository,
+                gameFactory = gameFactory,
+                playerFactory = playerFactory,
+                gameEventFactory = gameEventFactory,
+                eventApiService = eventApiService,
+                sharedDataService = sharedDataService,
+                gameIdGenerator = gameIdGenerator,
+                modelMapper = modelMapper,
+                appConfig = appConfig,
+            )
+
+        val gameId = "test_gameId"
+        val hostId = "test_hostId"
+        val originalStoredGame =
+            StoredGame(
+                hostId = hostId,
+                players = mapOf(
+                    "test_playerId1" to StoredPlayer(name = "test_playerName1"),
+                    "test_playerId2" to StoredPlayer(name = "test_playerName2"),
+                ),
+                started = false,
+            )
+        every { gameRepository.loadGame(gameId = gameId) } returns originalStoredGame
+        val expectedUpdateOperations: List<UpdateStoredGameOperation> = listOf(SetStartedOperation(started = true))
+        val newStoredGame =
+            StoredGame(
+                hostId = hostId,
+                players = mapOf(
+                    "test_playerId1" to StoredPlayer(name = "test_playerName1"),
+                    "test_playerId2" to StoredPlayer(name = "test_playerName2"),
+                ),
+                started = true,
+            )
+        val ttlMs: Long = 97846
+        appConfig["game.ttl.ms"] = ttlMs.toString()
+        every {
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = ttlMs,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
+        } returns newStoredGame
+
+        val actualResult: Game = gameService.startGame(gameId = gameId, playerId = hostId)
+
+        val expectedResult: Game =
+            GameImpl(
+                id = gameId,
+                hostId = hostId,
+                players = mapOf(
+                    "test_playerId1" to PlayerImpl(name = "test_playerName1"),
+                    "test_playerId2" to PlayerImpl(name = "test_playerName2"),
+                ),
+                started = true,
+            )
+        assertEquals(expectedResult, actualResult)
+        verify(ordering = Ordering.SEQUENCE) {
+            gameRepository.loadGame(gameId = gameId)
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = ttlMs,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
         }
         confirmVerified(gameIdGenerator, gameRepository)
     }
@@ -737,6 +1051,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -747,6 +1062,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -772,7 +1088,12 @@ class GameServiceImplTest {
                 started = true,
             )
         every {
-            gameRepository.updateGame(gameId = gameId, updateOperations = expectedUpdateOperations)
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = 3600000,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
         } returns newStoredGame
         val expectedEvent: GameEventEventApiV1Model =
             GameStartedEventEventApiV1Model(
@@ -792,7 +1113,12 @@ class GameServiceImplTest {
 
         verify(ordering = Ordering.SEQUENCE) {
             gameRepository.loadGame(gameId = gameId)
-            gameRepository.updateGame(gameId = gameId, updateOperations = expectedUpdateOperations)
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = 3600000,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
             eventApiService.publishGameEvent(event = expectedEvent)
         }
         confirmVerified(gameIdGenerator, gameRepository, eventApiService)
@@ -814,6 +1140,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = mockk()
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -824,6 +1151,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -856,6 +1184,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = mockk()
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -866,6 +1195,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -909,6 +1239,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = mockk()
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -919,6 +1250,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -960,6 +1292,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = mockk()
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -970,6 +1303,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -1011,6 +1345,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = mockk()
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -1021,6 +1356,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -1065,6 +1401,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = mockk()
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -1075,6 +1412,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -1107,6 +1445,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = mockk()
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -1117,6 +1456,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val gameId = "test_gameId"
@@ -1161,6 +1501,7 @@ class GameServiceImplTest {
                 gameEventFactory = gameEventFactory,
                 playerFactory = playerFactory,
             )
+        val appConfig: ObservableMap<String, String> = mockk()
         val gameService =
             GameServiceImpl(
                 gameRepository = gameRepository,
@@ -1171,6 +1512,7 @@ class GameServiceImplTest {
                 sharedDataService = sharedDataService,
                 gameIdGenerator = gameIdGenerator,
                 modelMapper = modelMapper,
+                appConfig = appConfig,
             )
 
         val eventHandlerSlot: CapturingSlot<GameEventEventApiV1Handler> = slot()
