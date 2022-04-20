@@ -154,7 +154,7 @@ class GameServiceImpl @Inject constructor(
                 listener.handle(event)
                 log.debug("Listener '$listenerId' successfully handled event '$event'")
             }
-                .exceptionally { log.error("Listener '$listenerId' failed to handle event '$event'"); null }
+                .exceptionally { log.error("Listener '$listenerId' failed to handle event '$event'", it); null }
         }
     }
 
