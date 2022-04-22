@@ -389,7 +389,7 @@ class SimpleSharedMapTest {
     @Test
     fun `when putting another map then the default ttl is used for each key`() {
         val wrapped: MutableMap<String, String> = spyk(mutableMapOf())
-        val map: SharedMap<String, String> = SimpleSharedMap(wrappedMap = wrapped)
+        val map: SharedMap<String, String> = spyk(SimpleSharedMap(wrappedMap = wrapped))
 
         val key1 = "test_key1"
         val key2 = "test_key2"
