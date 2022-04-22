@@ -204,13 +204,14 @@ class ObservableMutableMapImpl<K, V : Any>(
 
         override fun removeAll(elements: Collection<MutableMap.MutableEntry<K, V>>): Boolean =
             map.lock.withLock {
-                val copy: Map<K, V> = ConcurrentHashMap(map.backingMap)
+                val copy: Set<Map.Entry<K, V>> = ConcurrentHashMap(map.backingMap).entries
                 map.backingMap.entries.removeAll(elements)
                     .also {
                         if (!it) return@also
-                        for ((key: K, oldValue: V) in elements) {
-                            if (!copy.containsKey(key)) continue
-                            map.handleEvent(event = ListenEventImpl(key = key, oldValue = oldValue, newValue = null))
+                        for (entry: Map.Entry<K, V> in elements) {
+                            if (entry !in copy) continue
+                            val event = ListenEventImpl(key = entry.key, oldValue = entry.value, newValue = null)
+                            map.handleEvent(event = event)
                         }
                     }
             }
@@ -235,9 +236,11 @@ class ObservableMutableMapImpl<K, V : Any>(
                 map.backingMap.entries.removeIf(filter)
                     .also {
                         if (!it) return@also
-                        for ((key: K, oldValue: V) in copy) {
-                            if (map.backingMap.containsKey(key)) continue
-                            map.handleEvent(event = ListenEventImpl(key = key, oldValue = oldValue, newValue = null))
+                        val backingEntries: Set<Map.Entry<K, V>> = map.backingMap.entries
+                        for (entry: Map.Entry<K, V> in copy) {
+                            if (entry in backingEntries) continue
+                            val event = ListenEventImpl(key = entry.key, oldValue = entry.value, newValue = null)
+                            map.handleEvent(event = event)
                         }
                     }
             }
