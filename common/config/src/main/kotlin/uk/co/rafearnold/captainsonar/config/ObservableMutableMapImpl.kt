@@ -528,11 +528,11 @@ class ObservableMutableMapImpl<K, V : Any>(
                 }
         }
 
-        override fun equals(other: Any?): Boolean = map.backingMap.keys == other
+        override fun equals(other: Any?): Boolean = map.backingMap.values == other
 
-        override fun hashCode(): Int = map.backingMap.keys.hashCode()
+        override fun hashCode(): Int = map.backingMap.values.hashCode()
 
-        override fun toString(): String = map.backingMap.keys.toString()
+        override fun toString(): String = map.backingMap.values.toString()
     }
 
     override fun equals(other: Any?): Boolean = backingMap == other
