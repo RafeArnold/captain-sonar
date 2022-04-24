@@ -15,6 +15,7 @@ dependencies {
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
     testImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
     testImplementation "io.mockk:mockk:$mockk_version"
+    testImplementation "com.fasterxml.jackson.module:jackson-module-kotlin:$jackson_version"
     testImplementation project(":common:shared-data:simple")
 }
 
