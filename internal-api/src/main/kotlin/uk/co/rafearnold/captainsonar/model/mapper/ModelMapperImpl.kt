@@ -6,12 +6,14 @@ import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameStartedEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.PlayerAddedEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.PlayerEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapi.v1.model.PlayerTimedOutEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.model.Game
 import uk.co.rafearnold.captainsonar.model.GameEndedEvent
 import uk.co.rafearnold.captainsonar.model.GameEvent
 import uk.co.rafearnold.captainsonar.model.GameStartedEvent
 import uk.co.rafearnold.captainsonar.model.Player
 import uk.co.rafearnold.captainsonar.model.PlayerAddedEvent
+import uk.co.rafearnold.captainsonar.model.PlayerTimedOutEvent
 import uk.co.rafearnold.captainsonar.model.factory.GameEventFactory
 import uk.co.rafearnold.captainsonar.model.factory.GameFactory
 import uk.co.rafearnold.captainsonar.model.factory.PlayerFactory
@@ -57,6 +59,10 @@ class ModelMapperImpl @Inject constructor(
                 gameId = gameId,
                 game = mapToGameEventApiV1Model(game = event.game)
             )
+            is PlayerTimedOutEvent -> PlayerTimedOutEventEventApiV1Model(
+                gameId = gameId,
+                game = mapToGameEventApiV1Model(game = event.game)
+            )
         }
 
     private fun mapToGameEventApiV1Model(game: Game): GameEventApiV1Model =
@@ -82,6 +88,9 @@ class ModelMapperImpl @Inject constructor(
             }
             is PlayerAddedEventEventApiV1Model -> {
                 gameEventFactory.createPlayerAddedEvent(game = mapToGame(gameId = gameId, game = event.game))
+            }
+            is PlayerTimedOutEventEventApiV1Model -> {
+                gameEventFactory.createPlayerTimedOutEvent(game = mapToGame(gameId = gameId, game = event.game))
             }
         }
 

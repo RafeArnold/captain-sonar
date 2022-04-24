@@ -17,8 +17,8 @@ abstract class AbstractRestApiV1Handler : Handler<RoutingContext> {
     protected abstract val sessionService: RestApiV1SessionService
 
     override fun handle(ctx: RoutingContext) {
-        val userId: String = sessionService.getUserId(ctx)
-        val gameId: String? = sessionService.getGameId(ctx)
+        val userId: String = sessionService.getUserId(session = ctx.session())
+        val gameId: String? = sessionService.getGameId(session = ctx.session())
         val response: Any? = handle(ctx = ctx, userId = userId, gameId = gameId)
         ctx.response()
             .setStatusCode(HttpResponseStatus.OK.code())

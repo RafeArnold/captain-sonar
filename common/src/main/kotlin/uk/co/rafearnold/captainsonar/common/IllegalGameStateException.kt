@@ -16,6 +16,11 @@ data class PlayerAlreadyJoinedGameException(
     val playerName: String
 ) : IllegalGameStateException()
 
+data class NoSuchPlayerFoundException(
+    val gameId: String,
+    val playerId: String,
+) : IllegalGameStateException()
+
 data class GameAlreadyStartedException(
     val gameId: String
 ) : IllegalGameStateException()

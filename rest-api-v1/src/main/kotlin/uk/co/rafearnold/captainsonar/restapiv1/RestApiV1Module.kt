@@ -24,6 +24,7 @@ class RestApiV1Module : AbstractModule() {
 
     private fun bindRegisters() {
         val multibinder: Multibinder<Register> = Multibinder.newSetBinder(binder(), Register::class.java)
+        multibinder.addBinding().to(RestApiV1ExpiredSessionListener::class.java).`in`(Scopes.SINGLETON)
         multibinder.addBinding().to(CreateGameRestApiV1HandlerRouteRegister::class.java).`in`(Scopes.SINGLETON)
         multibinder.addBinding().to(JoinGameRestApiV1HandlerRouteRegister::class.java).`in`(Scopes.SINGLETON)
         multibinder.addBinding().to(StartGameRestApiV1HandlerRouteRegister::class.java).`in`(Scopes.SINGLETON)

@@ -10,6 +10,8 @@ interface GameService {
 
     fun addPlayer(gameId: String, playerId: String, playerName: String): Game
 
+    fun timeoutPlayer(gameId: String, playerId: String): Game
+
     fun startGame(gameId: String, playerId: String): Game
 
     fun endGame(gameId: String, playerId: String)

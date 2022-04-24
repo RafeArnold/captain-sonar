@@ -40,7 +40,7 @@ class RestApiV1ServiceImpl @Inject constructor(
         } else {
             val game: Game? = gameService.getGame(gameId = gameId)
             if (game == null) {
-                sessionService.removeGameId(ctx = ctx)
+                sessionService.removeGameId(session = ctx.session())
                 GetGameStateResponseRestApiV1Model(gameState = null)
             } else {
                 val gameStateModel: GameStateRestApiV1Model =
@@ -58,7 +58,7 @@ class RestApiV1ServiceImpl @Inject constructor(
         lock.withLock {
             gameId.ensureGameIdIsNull()
             val game: Game = gameService.createGame(hostId = userId, hostName = request.hostName)
-            sessionService.setGameId(ctx = ctx, gameId = game.id)
+            sessionService.setGameId(session = ctx.session(), gameId = game.id)
             CreateGameResponseRestApiV1Model(
                 gameState = modelMapper.mapToGameStateRestApiV1Model(game = game, userId = userId)
             )
@@ -80,7 +80,7 @@ class RestApiV1ServiceImpl @Inject constructor(
                         ?: throw NoSuchGameFoundException(gameId = e.gameId)
                     // TODO: Rename the player to the requested name.
                 }
-            sessionService.setGameId(ctx = ctx, gameId = game.id)
+            sessionService.setGameId(session = ctx.session(), gameId = game.id)
             JoinGameResponseRestApiV1Model(
                 gameState = modelMapper.mapToGameStateRestApiV1Model(game = game, userId = userId)
             )

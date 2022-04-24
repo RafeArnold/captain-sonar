@@ -1,14 +1,14 @@
 package uk.co.rafearnold.captainsonar.restapiv1
 
-import io.vertx.ext.web.RoutingContext
+import io.vertx.ext.web.Session
 
 interface RestApiV1SessionService {
 
-    fun getUserId(ctx: RoutingContext): String
+    fun getUserId(session: Session): String
 
-    fun getGameId(ctx: RoutingContext): String?
+    fun getGameId(session: Session): String?
 
-    fun setGameId(ctx: RoutingContext, gameId: String)
+    fun setGameId(session: Session, gameId: String)
 
-    fun removeGameId(ctx: RoutingContext)
+    fun removeGameId(session: Session)
 }

@@ -4,6 +4,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import uk.co.rafearnold.captainsonar.common.GameAlreadyStartedException
 import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
+import uk.co.rafearnold.captainsonar.common.NoSuchPlayerFoundException
 import uk.co.rafearnold.captainsonar.common.PlayerAlreadyJoinedGameException
 import uk.co.rafearnold.captainsonar.common.Register
 import uk.co.rafearnold.captainsonar.common.UserIsNotHostException
@@ -20,6 +21,7 @@ import uk.co.rafearnold.captainsonar.model.factory.PlayerFactory
 import uk.co.rafearnold.captainsonar.model.mapper.ModelMapper
 import uk.co.rafearnold.captainsonar.repository.AddPlayerOperation
 import uk.co.rafearnold.captainsonar.repository.GameRepository
+import uk.co.rafearnold.captainsonar.repository.RemovePlayerOperation
 import uk.co.rafearnold.captainsonar.repository.SetStartedOperation
 import uk.co.rafearnold.captainsonar.repository.StoredGame
 import uk.co.rafearnold.captainsonar.repository.StoredPlayer
@@ -100,6 +102,19 @@ class GameServiceImpl @Inject constructor(
             publishEvent(gameId = gameId, event = gameEventFactory.createPlayerAddedEvent(game = game))
             return game
         }
+
+    override fun timeoutPlayer(gameId: String, playerId: String): Game {
+        lock.withLock {
+            val storedGame: StoredGame = loadGameOrThrow(gameId = gameId)
+            if (!storedGame.players.containsKey(playerId))
+                throw NoSuchPlayerFoundException(gameId = gameId, playerId = playerId)
+            val updateOperations: List<UpdateStoredGameOperation> = listOf(RemovePlayerOperation(playerId = playerId))
+            val updatedGame: StoredGame = updateGame(gameId = gameId, updateOperations = updateOperations)
+            val game: Game = modelMapper.mapToGame(gameId = gameId, storedGame = updatedGame)
+            publishEvent(gameId = gameId, event = gameEventFactory.createPlayerTimedOutEvent(game = game))
+            return game
+        }
+    }
 
     override fun startGame(gameId: String, playerId: String): Game =
         lock.withLock {

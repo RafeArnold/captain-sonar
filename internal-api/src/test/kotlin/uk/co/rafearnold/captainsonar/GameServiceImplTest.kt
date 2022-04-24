@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import uk.co.rafearnold.captainsonar.common.GameAlreadyStartedException
 import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
+import uk.co.rafearnold.captainsonar.common.NoSuchPlayerFoundException
 import uk.co.rafearnold.captainsonar.common.PlayerAlreadyJoinedGameException
 import uk.co.rafearnold.captainsonar.common.UserIsNotHostException
 import uk.co.rafearnold.captainsonar.config.ObservableMap
@@ -33,6 +34,7 @@ import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameStartedEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.PlayerAddedEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.PlayerEventApiV1Model
+import uk.co.rafearnold.captainsonar.eventapi.v1.model.PlayerTimedOutEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.model.Game
 import uk.co.rafearnold.captainsonar.model.GameEndedEventImpl
 import uk.co.rafearnold.captainsonar.model.GameEvent
@@ -46,6 +48,7 @@ import uk.co.rafearnold.captainsonar.model.factory.PlayerFactoryImpl
 import uk.co.rafearnold.captainsonar.model.mapper.ModelMapperImpl
 import uk.co.rafearnold.captainsonar.repository.AddPlayerOperation
 import uk.co.rafearnold.captainsonar.repository.GameRepository
+import uk.co.rafearnold.captainsonar.repository.RemovePlayerOperation
 import uk.co.rafearnold.captainsonar.repository.SetStartedOperation
 import uk.co.rafearnold.captainsonar.repository.StoredGame
 import uk.co.rafearnold.captainsonar.repository.StoredPlayer
@@ -859,6 +862,277 @@ class GameServiceImplTest {
             gameRepository.loadGame(gameId = gameId)
         }
         confirmVerified(gameIdGenerator, gameRepository, eventApiService)
+    }
+
+    @Test
+    fun `a player can be timed out from an existing game`() {
+        val gameRepository: GameRepository = mockk()
+        val gameFactory = GameFactoryImpl()
+        val playerFactory = PlayerFactoryImpl()
+        val gameEventFactory = GameEventFactoryImpl()
+        val eventApiService: EventApiV1Service = mockk(relaxed = true)
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val gameIdGenerator: GameIdGenerator = mockk()
+        val modelMapper =
+            ModelMapperImpl(
+                gameFactory = gameFactory,
+                gameEventFactory = gameEventFactory,
+                playerFactory = playerFactory,
+            )
+        val appConfig: ObservableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
+        val gameService =
+            GameServiceImpl(
+                gameRepository = gameRepository,
+                gameFactory = gameFactory,
+                playerFactory = playerFactory,
+                gameEventFactory = gameEventFactory,
+                eventApiService = eventApiService,
+                sharedDataService = sharedDataService,
+                gameIdGenerator = gameIdGenerator,
+                modelMapper = modelMapper,
+                appConfig = appConfig,
+            )
+
+        val gameId = "test_gameId"
+        val playerId = "test_playerId"
+
+        val originalStoredGame =
+            StoredGame(
+                hostId = "test_hostId",
+                players = mapOf(
+                    playerId to StoredPlayer(name = "test_playerName1"),
+                    "test_playerId2" to StoredPlayer(name = "test_playerName2"),
+                ),
+                started = false,
+            )
+        every { gameRepository.loadGame(gameId = gameId) } returns originalStoredGame
+        val expectedUpdateOperations: List<UpdateStoredGameOperation> =
+            listOf(RemovePlayerOperation(playerId = playerId))
+        val newStoredGame =
+            StoredGame(
+                hostId = "test_hostId",
+                players = mapOf("test_playerId2" to StoredPlayer(name = "test_playerName2")),
+                started = false,
+            )
+        every {
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = 3600000,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
+        } returns newStoredGame
+
+        val actualResult: Game = gameService.timeoutPlayer(gameId = gameId, playerId = playerId)
+
+        val expectedResult: Game =
+            GameImpl(
+                id = gameId,
+                hostId = "test_hostId",
+                players = mapOf("test_playerId2" to PlayerImpl(name = "test_playerName2")),
+                started = false,
+            )
+        assertEquals(expectedResult, actualResult)
+        verify(ordering = Ordering.SEQUENCE) {
+            gameRepository.loadGame(gameId = gameId)
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = 3600000,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
+        }
+        confirmVerified(gameIdGenerator, gameRepository)
+    }
+
+    @Test
+    fun `when a player is timed out then an event is published`() {
+        val gameRepository: GameRepository = mockk()
+        val gameFactory = GameFactoryImpl()
+        val playerFactory = PlayerFactoryImpl()
+        val gameEventFactory = GameEventFactoryImpl()
+        val eventApiService: EventApiV1Service = mockk()
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val gameIdGenerator: GameIdGenerator = mockk()
+        val modelMapper =
+            ModelMapperImpl(
+                gameFactory = gameFactory,
+                gameEventFactory = gameEventFactory,
+                playerFactory = playerFactory,
+            )
+        val appConfig: ObservableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
+        val gameService =
+            GameServiceImpl(
+                gameRepository = gameRepository,
+                gameFactory = gameFactory,
+                playerFactory = playerFactory,
+                gameEventFactory = gameEventFactory,
+                eventApiService = eventApiService,
+                sharedDataService = sharedDataService,
+                gameIdGenerator = gameIdGenerator,
+                modelMapper = modelMapper,
+                appConfig = appConfig,
+            )
+
+        val gameId = "test_gameId"
+        val playerId = "test_playerId"
+
+        val originalStoredGame =
+            StoredGame(
+                hostId = "test_hostId",
+                players = mapOf(
+                    playerId to StoredPlayer(name = "test_playerName1"),
+                    "test_playerId2" to StoredPlayer(name = "test_playerName2"),
+                ),
+                started = false,
+            )
+        every { gameRepository.loadGame(gameId = gameId) } returns originalStoredGame
+        val expectedUpdateOperations: List<UpdateStoredGameOperation> =
+            listOf(RemovePlayerOperation(playerId = playerId))
+        val newStoredGame =
+            StoredGame(
+                hostId = "test_hostId",
+                players = mapOf("test_playerId2" to StoredPlayer(name = "test_playerName2")),
+                started = false,
+            )
+        every {
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = 3600000,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
+        } returns newStoredGame
+        val expectedEvent: GameEventEventApiV1Model =
+            PlayerTimedOutEventEventApiV1Model(
+                gameId = gameId,
+                game = GameEventApiV1Model(
+                    hostId = "test_hostId",
+                    players = mapOf("test_playerId2" to PlayerEventApiV1Model(name = "test_playerName2")),
+                    started = false,
+                ),
+            )
+        justRun { eventApiService.publishGameEvent(event = expectedEvent) }
+
+        val actualResult: Game = gameService.timeoutPlayer(gameId = gameId, playerId = playerId)
+
+        val expectedResult: Game =
+            GameImpl(
+                id = gameId,
+                hostId = "test_hostId",
+                players = mapOf("test_playerId2" to PlayerImpl(name = "test_playerName2")),
+                started = false,
+            )
+        assertEquals(expectedResult, actualResult)
+        verify(ordering = Ordering.SEQUENCE) {
+            gameRepository.loadGame(gameId = gameId)
+            gameRepository.updateGame(
+                gameId = gameId,
+                updateOperations = expectedUpdateOperations,
+                ttl = 3600000,
+                ttlUnit = TimeUnit.MILLISECONDS,
+            )
+            eventApiService.publishGameEvent(event = expectedEvent)
+        }
+        confirmVerified(gameIdGenerator, gameRepository, eventApiService)
+    }
+
+    @Test
+    fun `when a player is timed out from a game that does not exist then an exception is thrown and no operation is performed`() {
+        val gameRepository: GameRepository = mockk()
+        val gameFactory = GameFactoryImpl()
+        val playerFactory = PlayerFactoryImpl()
+        val gameEventFactory = GameEventFactoryImpl()
+        val eventApiService: EventApiV1Service = mockk(relaxed = true)
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val gameIdGenerator: GameIdGenerator = mockk()
+        val modelMapper =
+            ModelMapperImpl(
+                gameFactory = gameFactory,
+                gameEventFactory = gameEventFactory,
+                playerFactory = playerFactory,
+            )
+        val appConfig: ObservableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
+        val gameService =
+            GameServiceImpl(
+                gameRepository = gameRepository,
+                gameFactory = gameFactory,
+                playerFactory = playerFactory,
+                gameEventFactory = gameEventFactory,
+                eventApiService = eventApiService,
+                sharedDataService = sharedDataService,
+                gameIdGenerator = gameIdGenerator,
+                modelMapper = modelMapper,
+                appConfig = appConfig,
+            )
+
+        val gameId = "test_gameId"
+        val playerId = "test_playerId"
+
+        every { gameRepository.loadGame(gameId = gameId) } returns null
+
+        val exception: NoSuchGameFoundException =
+            assertThrows { gameService.timeoutPlayer(gameId = gameId, playerId = playerId) }
+
+        assertEquals(gameId, exception.gameId)
+        verify(ordering = Ordering.SEQUENCE) {
+            gameRepository.loadGame(gameId = gameId)
+        }
+        confirmVerified(gameIdGenerator, gameRepository)
+    }
+
+    @Test
+    fun `when a player that does not exist is timed out then an exception is thrown and no operation is performed`() {
+        val gameRepository: GameRepository = mockk()
+        val gameFactory = GameFactoryImpl()
+        val playerFactory = PlayerFactoryImpl()
+        val gameEventFactory = GameEventFactoryImpl()
+        val eventApiService: EventApiV1Service = mockk(relaxed = true)
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val gameIdGenerator: GameIdGenerator = mockk()
+        val modelMapper =
+            ModelMapperImpl(
+                gameFactory = gameFactory,
+                gameEventFactory = gameEventFactory,
+                playerFactory = playerFactory,
+            )
+        val appConfig: ObservableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
+        val gameService =
+            GameServiceImpl(
+                gameRepository = gameRepository,
+                gameFactory = gameFactory,
+                playerFactory = playerFactory,
+                gameEventFactory = gameEventFactory,
+                eventApiService = eventApiService,
+                sharedDataService = sharedDataService,
+                gameIdGenerator = gameIdGenerator,
+                modelMapper = modelMapper,
+                appConfig = appConfig,
+            )
+
+        val gameId = "test_gameId"
+        val playerId = "test_playerId"
+
+        val originalStoredGame =
+            StoredGame(
+                hostId = "test_hostId",
+                players = mapOf("test_playerId2" to StoredPlayer(name = "test_playerName2")),
+                started = false,
+            )
+        every { gameRepository.loadGame(gameId = gameId) } returns originalStoredGame
+
+        val exception: NoSuchPlayerFoundException =
+            assertThrows { gameService.timeoutPlayer(gameId = gameId, playerId = playerId) }
+
+        assertEquals(gameId, exception.gameId)
+        verify(ordering = Ordering.SEQUENCE) {
+            gameRepository.loadGame(gameId = gameId)
+        }
+        confirmVerified(gameIdGenerator, gameRepository)
     }
 
     @Test

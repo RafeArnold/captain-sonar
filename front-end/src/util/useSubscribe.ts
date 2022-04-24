@@ -1,7 +1,7 @@
 import GameState from "../model/GameState";
 import React from "react";
 import {subscribeToGameEvents} from "./apiUtils";
-import {GameEvent, GameStartedEvent, PlayerJoinedEvent} from "../model/GameEvent";
+import {GameEvent, GameStartedEvent, PlayerJoinedEvent, PlayerTimedOutEvent} from "../model/GameEvent";
 
 export default function useSubscribe(
     setGameState: (gameState: GameState) => void,
@@ -24,6 +24,9 @@ export default function useSubscribe(
                 break;
             case "player-joined":
                 setGameState((gameEvent as PlayerJoinedEvent).gameState)
+                break;
+            case "player-timed-out":
+                setGameState((gameEvent as PlayerTimedOutEvent).gameState)
                 break;
         }
     }

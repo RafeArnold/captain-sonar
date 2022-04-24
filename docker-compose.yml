@@ -50,7 +50,7 @@ services:
       - type: volume
         source: redis-db-data
         target: /data
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASS}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASS} --notify-keyspace-events Kx
 #  rabbitmq:
 #    image: rabbitmq:alpine
 #    hostname: rabbitmq

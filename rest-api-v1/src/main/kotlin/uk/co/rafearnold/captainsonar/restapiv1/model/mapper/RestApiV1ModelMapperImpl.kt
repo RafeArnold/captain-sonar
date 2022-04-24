@@ -6,12 +6,14 @@ import uk.co.rafearnold.captainsonar.model.GameEvent
 import uk.co.rafearnold.captainsonar.model.GameStartedEvent
 import uk.co.rafearnold.captainsonar.model.Player
 import uk.co.rafearnold.captainsonar.model.PlayerAddedEvent
+import uk.co.rafearnold.captainsonar.model.PlayerTimedOutEvent
 import uk.co.rafearnold.captainsonar.restapiv1.model.GameEndedEventRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.GameEventRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.GameStartedEventRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.GameStateRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.PlayerJoinedEventRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.PlayerRestApiV1Model
+import uk.co.rafearnold.captainsonar.restapiv1.model.PlayerTimedOutEventRestApiV1Model
 
 class RestApiV1ModelMapperImpl : RestApiV1ModelMapper {
 
@@ -36,6 +38,11 @@ class RestApiV1ModelMapperImpl : RestApiV1ModelMapper {
             }
             is PlayerAddedEvent -> {
                 PlayerJoinedEventRestApiV1Model(
+                    gameState = mapToGameStateRestApiV1Model(game = event.game, userId = userId)
+                )
+            }
+            is PlayerTimedOutEvent -> {
+                PlayerTimedOutEventRestApiV1Model(
                     gameState = mapToGameStateRestApiV1Model(game = event.game, userId = userId)
                 )
             }

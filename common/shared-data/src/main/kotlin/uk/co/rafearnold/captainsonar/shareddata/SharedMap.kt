@@ -33,4 +33,8 @@ interface SharedMap<K, V> : MutableMap<K, V>, TtlCollection {
      * @param ttlUnit The time unit for the TTL.
      */
     fun putIfAbsent(key: K, value: V, ttl: Long, ttlUnit: TimeUnit): V?
+
+    fun addListener(handler: SharedMapEventHandler<K, V>): String
+
+    fun removeListener(listenerId: String)
 }

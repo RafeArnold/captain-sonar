@@ -22,6 +22,7 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 @Testcontainers
 class RedisClientProviderTest {
@@ -111,6 +112,72 @@ class RedisClientProviderTest {
         CompletableFuture.runAsync { while (listenerEvents.size != 4); }.get(2, TimeUnit.SECONDS)
 
         assertEquals(container3Keys, provider.get().keys("*"))
+    }
+
+    @Test
+    @Suppress("ControlFlowWithEmptyBody")
+    fun `config changes can be subscribed to`() {
+        val appConfig: ObservableMutableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
+        appConfig["redis.connection.host"] = "localhost"
+        appConfig["redis.connection.port"] = redisContainer1.firstMappedPort.toString()
+        appConfig["redis.connection.password"] = password1
+        val clientProvider = RedisClientProvider(appConfig = appConfig)
+
+        val eventCount = AtomicInteger(0)
+        clientProvider.subscribeToClientConfigChangeEvents { eventCount.incrementAndGet() }
+
+        assertEquals(0, eventCount.get())
+
+        appConfig["redis.connection.port"] = redisContainer2.firstMappedPort.toString()
+
+        CompletableFuture.runAsync { while (eventCount.get() != 1); }.get(2, TimeUnit.SECONDS)
+        assertEquals(1, eventCount.get())
+
+        appConfig["redis.connection.password"] = password2
+
+        CompletableFuture.runAsync { while (eventCount.get() != 2); }.get(2, TimeUnit.SECONDS)
+        assertEquals(2, eventCount.get())
+
+        appConfig["redis.connection.port"] = redisContainer3.firstMappedPort.toString()
+        appConfig.remove("redis.connection.password")
+
+        CompletableFuture.runAsync { while (eventCount.get() != 4); }.get(2, TimeUnit.SECONDS)
+        assertEquals(4, eventCount.get())
+    }
+
+    @Test
+    @Suppress("ControlFlowWithEmptyBody")
+    fun `when a config change event handler throws an exception then the other handlers are not affected`() {
+        val appConfig: ObservableMutableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
+        appConfig["redis.connection.host"] = "localhost"
+        appConfig["redis.connection.port"] = redisContainer1.firstMappedPort.toString()
+        appConfig["redis.connection.password"] = password1
+        val clientProvider = RedisClientProvider(appConfig = appConfig)
+
+        val eventCount1 = AtomicInteger(0)
+        val eventCount2 = AtomicInteger(0)
+        clientProvider.subscribeToClientConfigChangeEvents { eventCount1.incrementAndGet() }
+        clientProvider.subscribeToClientConfigChangeEvents { throw Exception() }
+        clientProvider.subscribeToClientConfigChangeEvents { eventCount2.incrementAndGet() }
+
+        assertEquals(0, eventCount1.get())
+        assertEquals(0, eventCount2.get())
+
+        appConfig["redis.connection.port"] = redisContainer2.firstMappedPort.toString()
+        appConfig["redis.connection.password"] = password2
+
+        CompletableFuture.runAsync { while (eventCount1.get() != 2); }.get(2, TimeUnit.SECONDS)
+        CompletableFuture.runAsync { while (eventCount2.get() != 2); }.get(2, TimeUnit.SECONDS)
+        assertEquals(2, eventCount1.get())
+        assertEquals(2, eventCount2.get())
+
+        appConfig["redis.connection.port"] = redisContainer3.firstMappedPort.toString()
+        appConfig.remove("redis.connection.password")
+
+        CompletableFuture.runAsync { while (eventCount1.get() != 4); }.get(2, TimeUnit.SECONDS)
+        CompletableFuture.runAsync { while (eventCount2.get() != 4); }.get(2, TimeUnit.SECONDS)
+        assertEquals(4, eventCount1.get())
+        assertEquals(4, eventCount2.get())
     }
 
     private fun populateContainers(container1Key: Set<String>, container2Key: Set<String>, container3Key: Set<String>) {

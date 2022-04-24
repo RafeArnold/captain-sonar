@@ -29,8 +29,8 @@ class StreamGameRestApiV1HandlerRouteRegister @Inject constructor(
         }
 
     override fun handle(ctx: RoutingContext) {
-        val userId: String = sessionService.getUserId(ctx)
-        val gameId: String? = sessionService.getGameId(ctx)
+        val userId: String = sessionService.getUserId(session = ctx.session())
+        val gameId: String? = sessionService.getGameId(session = ctx.session())
         val response: HttpServerResponse =
             ctx.response()
                 .setChunked(true)

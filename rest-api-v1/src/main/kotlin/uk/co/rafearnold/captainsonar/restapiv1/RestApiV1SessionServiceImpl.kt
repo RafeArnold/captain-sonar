@@ -1,19 +1,19 @@
 package uk.co.rafearnold.captainsonar.restapiv1
 
-import io.vertx.ext.web.RoutingContext
+import io.vertx.ext.web.Session
 
 class RestApiV1SessionServiceImpl : RestApiV1SessionService {
 
-    override fun getUserId(ctx: RoutingContext): String = ctx.session().id()
+    override fun getUserId(session: Session): String = session.id()
 
-    override fun getGameId(ctx: RoutingContext): String? = ctx.session().get(gameIdKey)
+    override fun getGameId(session: Session): String? = session.get(gameIdKey)
 
-    override fun setGameId(ctx: RoutingContext, gameId: String) {
-        ctx.session().put(gameIdKey, gameId)
+    override fun setGameId(session: Session, gameId: String) {
+        session.put(gameIdKey, gameId)
     }
 
-    override fun removeGameId(ctx: RoutingContext) {
-        ctx.session().remove<Any>(gameIdKey)
+    override fun removeGameId(session: Session) {
+        session.remove<Any>(gameIdKey)
     }
 
     companion object {

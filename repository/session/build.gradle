@@ -4,4 +4,12 @@ plugins {
 
 dependencies {
     implementation "io.vertx:vertx-web:$vertx_version"
+    implementation "com.google.inject:guice:$guice_version"
+
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
+}
+
+test {
+    useJUnitPlatform()
 }

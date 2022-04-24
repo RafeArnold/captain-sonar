@@ -19,3 +19,9 @@ data class PlayerJoinedEventRestApiV1Model(
 ) : GameEventRestApiV1Model {
     override val eventType: String = "player-joined"
 }
+
+data class PlayerTimedOutEventRestApiV1Model(
+    val gameState: GameStateRestApiV1Model
+) : GameEventRestApiV1Model {
+    override val eventType: String = "player-timed-out"
+}

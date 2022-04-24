@@ -16,7 +16,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import java.util.*
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
 
 class SimpleSharedMapTest {
@@ -487,5 +489,63 @@ class SimpleSharedMapTest {
         // Check the re-added entry has not been removed.
         assertEquals(mapOf(key1 to value3), map)
         assertEquals(mapOf(key1 to value3), wrapped)
+    }
+
+    @Test
+    @Suppress("ControlFlowWithEmptyBody")
+    fun `listeners can be added and removed from the map`() {
+        val map: SharedMap<String, String> = SimpleSharedMap()
+
+        val key1 = "test_key1"
+        val key2 = "test_key2"
+        val key3 = "test_key3"
+        val value1 = "test_value1"
+        val value2 = "test_value2"
+        val value3 = "test_value3"
+
+        map[key1] = value1
+
+        val listener1Events: Queue<SharedMapEvent<String, String>> = ConcurrentLinkedQueue()
+        val listener1Id = map.addListener { listener1Events.add(it) }
+
+        map[key1] = value2
+
+        CompletableFuture.runAsync { while (listener1Events.size != 1); }.get(2, TimeUnit.SECONDS)
+        assertEquals(1, listener1Events.size)
+        assertEquals(EntryUpdatedEvent(key = key1, oldValue = value1, newValue = value2), listener1Events.poll())
+
+        val listener2Events: Queue<SharedMapEvent<String, String>> = ConcurrentLinkedQueue()
+        map.addListener { listener2Events.add(it) }
+
+        map[key2] = value1
+
+        CompletableFuture.runAsync { while (listener1Events.size != 1); }.get(2, TimeUnit.SECONDS)
+        assertEquals(1, listener1Events.size)
+        assertEquals(EntryAddedEvent(key = key2, newValue = value1), listener1Events.poll())
+        CompletableFuture.runAsync { while (listener2Events.size != 1); }.get(2, TimeUnit.SECONDS)
+        assertEquals(1, listener2Events.size)
+        assertEquals(EntryAddedEvent(key = key2, newValue = value1), listener2Events.poll())
+
+        val ttlMs: Long = 10
+        map.put(key = key3, value = value3, ttl = ttlMs, ttlUnit = TimeUnit.MILLISECONDS)
+
+        Thread.sleep(ttlMs)
+        CompletableFuture.runAsync { while (listener1Events.size != 2); }.get(2, TimeUnit.SECONDS)
+        assertEquals(2, listener1Events.size)
+        assertEquals(EntryAddedEvent(key = key3, newValue = value3), listener1Events.poll())
+        assertEquals(EntryExpiredEvent(key = key3, oldValue = value3), listener1Events.poll())
+        CompletableFuture.runAsync { while (listener2Events.size != 2); }.get(2, TimeUnit.SECONDS)
+        assertEquals(2, listener2Events.size)
+        assertEquals(EntryAddedEvent(key = key3, newValue = value3), listener2Events.poll())
+        assertEquals(EntryExpiredEvent(key = key3, oldValue = value3), listener2Events.poll())
+
+        map.removeListener(listenerId = listener1Id)
+
+        map.remove(key1)
+
+        CompletableFuture.runAsync { while (listener2Events.size != 1); }.get(2, TimeUnit.SECONDS)
+        assertEquals(1, listener2Events.size)
+        assertEquals(EntryRemovedEvent(key = key1, oldValue = value2), listener2Events.poll())
+        assertEquals(0, listener1Events.size)
     }
 }

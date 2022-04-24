@@ -51,7 +51,7 @@ object SimpleClusterManager {
         fun getLock(name: String): SharedLock = locks.computeIfAbsent(name) { SimpleSharedLock(ReentrantLock()) }
 
         @Suppress("UNCHECKED_CAST")
-        fun <K, V> getMap(name: String): SharedMap<K, V> =
+        fun <K, V : Any> getMap(name: String): SharedMap<K, V> =
             maps.computeIfAbsent(name) { SimpleSharedMap<K, V>() } as SharedMap<K, V>
     }
 

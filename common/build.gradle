@@ -4,4 +4,5 @@ plugins {
 
 dependencies {
     implementation "io.vertx:vertx-core:$vertx_version"
+    compileOnly "com.google.inject:guice:$guice_version"
 }

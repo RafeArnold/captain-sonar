@@ -5,6 +5,7 @@ import uk.co.rafearnold.captainsonar.common.GameAlreadyExistsException
 import uk.co.rafearnold.captainsonar.common.GameAlreadyStartedException
 import uk.co.rafearnold.captainsonar.common.IllegalGameStateException
 import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
+import uk.co.rafearnold.captainsonar.common.NoSuchPlayerFoundException
 import uk.co.rafearnold.captainsonar.common.PlayerAlreadyJoinedGameException
 import uk.co.rafearnold.captainsonar.common.UserIsNotHostException
 
@@ -34,6 +35,12 @@ class RestApiV1ExceptionMapper {
                 RestApiV1Exception(
                     statusCode = HttpResponseStatus.CONFLICT.code(),
                     message = "Player has already joined this game"
+                )
+            }
+            is NoSuchPlayerFoundException -> {
+                RestApiV1Exception(
+                    statusCode = HttpResponseStatus.NOT_FOUND.code(),
+                    message = "No player with the requested ID found"
                 )
             }
             is UserIsNotHostException -> {

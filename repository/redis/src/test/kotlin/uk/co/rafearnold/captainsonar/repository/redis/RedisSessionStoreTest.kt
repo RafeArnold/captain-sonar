@@ -11,6 +11,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -22,6 +23,10 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
 import redis.clients.jedis.Jedis
 import uk.co.rafearnold.captainsonar.common.toCompletableFuture
+import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
+import uk.co.rafearnold.captainsonar.repository.session.SessionCodecImpl
+import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
+import uk.co.rafearnold.captainsonar.shareddata.SimpleClusterManager
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInput
@@ -48,12 +53,19 @@ class RedisSessionStoreTest {
         clearAllMocks()
         unmockkAll()
         Jedis(redisContainer.host, redisContainer.firstMappedPort).flushAll()
+        SimpleClusterManager.clearAllClusters()
     }
 
     @Test
     fun `retry timeout is 5 seconds`() {
         val vertx: Vertx = Vertx.vertx()
-        val sessionStore = RedisSessionStore(vertx = vertx, redisClientProvider = mockk())
+        val sessionStore =
+            RedisSessionStore(
+                vertx = vertx,
+                redisClientProvider = mockk(),
+                sessionCodec = mockk(),
+                sharedDataService = mockk(relaxed = true)
+            )
         assertEquals(5000, sessionStore.retryTimeout())
         vertx.close()
     }
@@ -61,7 +73,13 @@ class RedisSessionStoreTest {
     @Test
     fun `a session can be created`() {
         val vertx: Vertx = Vertx.vertx()
-        val sessionStore = RedisSessionStore(vertx = vertx, redisClientProvider = mockk())
+        val sessionStore =
+            RedisSessionStore(
+                vertx = vertx,
+                redisClientProvider = mockk(),
+                sessionCodec = mockk(),
+                sharedDataService = mockk(relaxed = true)
+            )
         val timeout: Long = 10000
         val length = 17
         val session: Session = sessionStore.createSession(timeout, length)
@@ -75,7 +93,16 @@ class RedisSessionStoreTest {
     fun `a session can be inserted into the db`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionStore = RedisSessionStore(vertx = vertx, redisClientProvider = redisClientProvider)
+        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val sessionStore =
+            RedisSessionStore(
+                vertx = vertx,
+                redisClientProvider = redisClientProvider,
+                sessionCodec = sessionCodec,
+                sharedDataService = sharedDataService,
+            )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
         every { redisClientProvider.get() } returns redisClient
@@ -87,8 +114,9 @@ class RedisSessionStoreTest {
         sessionStore.put(session).toCompletableFuture().get(2, TimeUnit.SECONDS)
 
         val expectedDbKey = "uk.co.rafearnold.captainsonar.session.${session.id()}"
+        val expectedDbShadowKey = "uk.co.rafearnold.captainsonar.session-shadow.${session.id()}"
 
-        assertEquals(setOf(expectedDbKey), redisClient.keys("*"))
+        assertEquals(setOf(expectedDbKey, expectedDbShadowKey), redisClient.keys("*"))
 
         val result1: ByteArray = redisClient.get(expectedDbKey.toByteArray(Charsets.UTF_8))
         val result1Stream = DataInputStream(ByteArrayInputStream(result1))
@@ -114,7 +142,7 @@ class RedisSessionStoreTest {
         session.put(dataKey3, dataValue3)
         sessionStore.put(session).toCompletableFuture().get(2, TimeUnit.SECONDS)
 
-        assertEquals(setOf(expectedDbKey), redisClient.keys("*"))
+        assertEquals(setOf(expectedDbKey, expectedDbShadowKey), redisClient.keys("*"))
 
         val result2: ByteArray = redisClient.get(expectedDbKey.toByteArray(Charsets.UTF_8))
         val result2Stream = DataInputStream(ByteArrayInputStream(result2))
@@ -154,7 +182,16 @@ class RedisSessionStoreTest {
     fun `when a session is inserted with the same id as an existing session but a different version then an exception is thrown`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionStore = RedisSessionStore(vertx = vertx, redisClientProvider = redisClientProvider)
+        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val sessionStore =
+            RedisSessionStore(
+                vertx = vertx,
+                redisClientProvider = redisClientProvider,
+                sessionCodec = sessionCodec,
+                sharedDataService = sharedDataService,
+            )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
         every { redisClientProvider.get() } returns redisClient
@@ -182,7 +219,16 @@ class RedisSessionStoreTest {
     fun `when a session is inserted then its version is incremented`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionStore = RedisSessionStore(vertx = vertx, redisClientProvider = redisClientProvider)
+        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val sessionStore =
+            RedisSessionStore(
+                vertx = vertx,
+                redisClientProvider = redisClientProvider,
+                sessionCodec = sessionCodec,
+                sharedDataService = sharedDataService,
+            )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
         every { redisClientProvider.get() } returns redisClient
@@ -216,7 +262,16 @@ class RedisSessionStoreTest {
     fun `sessions are inserted with a expiration time`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionStore = RedisSessionStore(vertx = vertx, redisClientProvider = redisClientProvider)
+        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val sessionStore =
+            RedisSessionStore(
+                vertx = vertx,
+                redisClientProvider = redisClientProvider,
+                sessionCodec = sessionCodec,
+                sharedDataService = sharedDataService,
+            )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
         every { redisClientProvider.get() } returns redisClient
@@ -227,18 +282,19 @@ class RedisSessionStoreTest {
 
         sessionStore.put(session).toCompletableFuture().get(2, TimeUnit.SECONDS)
 
+        val expectedDbShadowKey = "uk.co.rafearnold.captainsonar.session-shadow.${session.id()}"
         val expectedDbKey = "uk.co.rafearnold.captainsonar.session.${session.id()}"
 
-        val ttlMs: Long = redisClient.pttl(expectedDbKey)
-        assertTrue(ttlMs in 1..timeout)
+        assertTrue(redisClient.pttl(expectedDbShadowKey) in 1..timeout)
+        assertEquals(-1, redisClient.pttl(expectedDbKey))
+
+        Thread.sleep(timeout / 2)
+
+        assertEquals(setOf(expectedDbShadowKey, expectedDbKey), redisClient.keys("*"))
 
         Thread.sleep(timeout / 2)
 
         assertEquals(setOf(expectedDbKey), redisClient.keys("*"))
-
-        Thread.sleep(timeout / 2)
-
-        assertEquals(setOf<String>(), redisClient.keys("*"))
 
         vertx.close()
     }
@@ -247,7 +303,16 @@ class RedisSessionStoreTest {
     fun `a session can be retrieved by its id`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionStore = RedisSessionStore(vertx = vertx, redisClientProvider = redisClientProvider)
+        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val sessionStore =
+            RedisSessionStore(
+                vertx = vertx,
+                redisClientProvider = redisClientProvider,
+                sessionCodec = sessionCodec,
+                sharedDataService = sharedDataService,
+            )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
         every { redisClientProvider.get() } returns redisClient
@@ -269,6 +334,7 @@ class RedisSessionStoreTest {
             dataOutputStream.writeInt(version)
             dataOutputStream.writeInt(0)
 
+            redisClient.set("uk.co.rafearnold.captainsonar.session-shadow.$id", "")
             redisClient.set(
                 "uk.co.rafearnold.captainsonar.session.$id".toByteArray(Charsets.UTF_8),
                 serializedSessionOutputStream.toByteArray()
@@ -321,6 +387,7 @@ class RedisSessionStoreTest {
             dataOutputStream.writeInt(dataValue3.length)
             dataOutputStream.write(dataValue3.toByteArray(Charsets.UTF_8))
 
+            redisClient.set("uk.co.rafearnold.captainsonar.session-shadow.$id", "")
             redisClient.set(
                 "uk.co.rafearnold.captainsonar.session.$id".toByteArray(Charsets.UTF_8),
                 serializedSessionOutputStream.toByteArray()
@@ -341,10 +408,109 @@ class RedisSessionStoreTest {
     }
 
     @Test
+    fun `when a session's shadow key has expired then null is returned when the session is requested`() {
+        val vertx: Vertx = Vertx.vertx()
+        val redisClientProvider: RedisClientProvider = mockk()
+        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val sessionStore =
+            RedisSessionStore(
+                vertx = vertx,
+                redisClientProvider = redisClientProvider,
+                sessionCodec = sessionCodec,
+                sharedDataService = sharedDataService,
+            )
+
+        val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
+        every { redisClientProvider.get() } returns redisClient
+
+        // Session with no data.
+        run {
+            val length = 17
+            val id: String = Base64.getEncoder().encodeToString(Random.nextBytes(length))
+            val timeout: Long = 10000
+            val lastAccessed: Long = System.currentTimeMillis()
+            val version = 3456
+
+            val serializedSessionOutputStream = ByteArrayOutputStream()
+            val dataOutputStream = DataOutputStream(serializedSessionOutputStream)
+            dataOutputStream.writeInt(id.length)
+            dataOutputStream.write(id.toByteArray(Charsets.UTF_8))
+            dataOutputStream.writeLong(timeout)
+            dataOutputStream.writeLong(lastAccessed)
+            dataOutputStream.writeInt(version)
+            dataOutputStream.writeInt(0)
+
+            redisClient.set(
+                "uk.co.rafearnold.captainsonar.session.$id".toByteArray(Charsets.UTF_8),
+                serializedSessionOutputStream.toByteArray()
+            )
+
+            assertNull(sessionStore.get(id).toCompletableFuture().get(2, TimeUnit.SECONDS))
+        }
+
+        // Session with data.
+        run {
+            val length = 345
+            val id: String = Base64.getEncoder().encodeToString(Random.nextBytes(length))
+            val timeout: Long = 543665
+            val lastAccessed: Long = System.currentTimeMillis()
+            val version = 17
+            val dataKey1 = "test_dataKey1"
+            val dataValue1 = 2353
+            val dataKey2 = "test_dataKey2"
+            val dataValue2 = false
+            val dataKey3 = "test_dataKey3"
+            val dataValue3 = "test_dataValue1"
+
+            val serializedSessionOutputStream = ByteArrayOutputStream()
+            val dataOutputStream = DataOutputStream(serializedSessionOutputStream)
+            dataOutputStream.writeInt(id.length)
+            dataOutputStream.write(id.toByteArray(Charsets.UTF_8))
+            dataOutputStream.writeLong(timeout)
+            dataOutputStream.writeLong(lastAccessed)
+            dataOutputStream.writeInt(version)
+            dataOutputStream.writeInt(3)
+            dataOutputStream.writeInt(dataKey1.length)
+            dataOutputStream.write(dataKey1.toByteArray(Charsets.UTF_8))
+            dataOutputStream.write(2)
+            dataOutputStream.writeInt(dataValue1)
+            dataOutputStream.writeInt(dataKey2.length)
+            dataOutputStream.write(dataKey2.toByteArray(Charsets.UTF_8))
+            dataOutputStream.write(8)
+            dataOutputStream.writeBoolean(dataValue2)
+            dataOutputStream.writeInt(dataKey3.length)
+            dataOutputStream.write(dataKey3.toByteArray(Charsets.UTF_8))
+            dataOutputStream.write(9)
+            dataOutputStream.writeInt(dataValue3.length)
+            dataOutputStream.write(dataValue3.toByteArray(Charsets.UTF_8))
+
+            redisClient.set(
+                "uk.co.rafearnold.captainsonar.session.$id".toByteArray(Charsets.UTF_8),
+                serializedSessionOutputStream.toByteArray()
+            )
+
+            assertNull(sessionStore.get(id).toCompletableFuture().get(2, TimeUnit.SECONDS))
+        }
+
+        vertx.close()
+    }
+
+    @Test
     fun `the id of a session can be regenerated after being retrieved`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionStore = RedisSessionStore(vertx = vertx, redisClientProvider = redisClientProvider)
+        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val sessionStore =
+            RedisSessionStore(
+                vertx = vertx,
+                redisClientProvider = redisClientProvider,
+                sessionCodec = sessionCodec,
+                sharedDataService = sharedDataService,
+            )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
         every { redisClientProvider.get() } returns redisClient
@@ -382,7 +548,16 @@ class RedisSessionStoreTest {
     fun `a session can be deleted by id`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionStore = RedisSessionStore(vertx = vertx, redisClientProvider = redisClientProvider)
+        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val sessionStore =
+            RedisSessionStore(
+                vertx = vertx,
+                redisClientProvider = redisClientProvider,
+                sessionCodec = sessionCodec,
+                sharedDataService = sharedDataService,
+            )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
         every { redisClientProvider.get() } returns redisClient
@@ -468,33 +643,90 @@ class RedisSessionStoreTest {
     fun `all sessions can be deleted`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionStore = RedisSessionStore(vertx = vertx, redisClientProvider = redisClientProvider)
+        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val sessionStore =
+            RedisSessionStore(
+                vertx = vertx,
+                redisClientProvider = redisClientProvider,
+                sessionCodec = sessionCodec,
+                sharedDataService = sharedDataService,
+            )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
         every { redisClientProvider.get() } returns redisClient
 
-        val sessionKey1: String =
-            "uk.co.rafearnold.captainsonar.session." + Base64.getEncoder().encodeToString(Random.nextBytes(17))
-        val sessionKey2: String =
-            "uk.co.rafearnold.captainsonar.session." + Base64.getEncoder().encodeToString(Random.nextBytes(3464))
-        val nonSessionKey1 = "test_randomKeyThatIsNotASessionKey"
-        val nonSessionKey2 = Base64.getEncoder().encodeToString(Random.nextBytes(17))
-        val nonSessionKey3 = ""
+        val session1Id = Base64.getEncoder().encodeToString(Random.nextBytes(17))
+        val session2Id = Base64.getEncoder().encodeToString(Random.nextBytes(3464))
+        val session3Id = Base64.getEncoder().encodeToString(Random.nextBytes(6))
+        val session4Id = Base64.getEncoder().encodeToString(Random.nextBytes(45))
+        val shadow1Key = "uk.co.rafearnold.captainsonar.session-shadow.$session1Id"
+        val shadow2Key = "uk.co.rafearnold.captainsonar.session-shadow.$session2Id"
+        val shadow3Key = "uk.co.rafearnold.captainsonar.session-shadow.$session3Id"
+        val session1Key = "uk.co.rafearnold.captainsonar.session.$session1Id"
+        val session2Key = "uk.co.rafearnold.captainsonar.session.$session2Id"
+        val session4Key = "uk.co.rafearnold.captainsonar.session.$session4Id"
+        val nonSession1Key = "test_randomKeyThatIsNotASessionKey"
+        val nonSession2Key = Base64.getEncoder().encodeToString(Random.nextBytes(17))
+        val nonSession3Key = ""
 
-        redisClient.set(sessionKey1, "")
-        redisClient.set(sessionKey2, "")
-        redisClient.set(nonSessionKey1, "")
-        redisClient.set(nonSessionKey2, "")
-        redisClient.set(nonSessionKey3, "")
+        redisClient.set(shadow1Key, "")
+        redisClient.set(shadow2Key, "")
+        redisClient.set(shadow3Key, "")
+        redisClient.set(session1Key, "")
+        redisClient.set(session2Key, "")
+        redisClient.set(session4Key, "")
+        redisClient.set(nonSession1Key, "")
+        redisClient.set(nonSession2Key, "")
+        redisClient.set(nonSession3Key, "")
 
         assertEquals(
-            setOf(sessionKey1, sessionKey2, nonSessionKey1, nonSessionKey2, nonSessionKey3),
+            setOf(
+                shadow1Key, shadow2Key, shadow3Key, session1Key, session2Key,
+                session4Key, nonSession1Key, nonSession2Key, nonSession3Key
+            ),
             redisClient.keys("*")
         )
 
         sessionStore.clear().toCompletableFuture().get(2, TimeUnit.SECONDS)
 
-        assertEquals(setOf(nonSessionKey1, nonSessionKey2, nonSessionKey3), redisClient.keys("*"))
+        assertEquals(setOf(session4Key, nonSession1Key, nonSession2Key, nonSession3Key), redisClient.keys("*"))
+
+        vertx.close()
+    }
+
+    @Test
+    fun `when all sessions are cleared but there are no sessions in the db then no operation is performed`() {
+        val vertx: Vertx = Vertx.vertx()
+        val redisClientProvider: RedisClientProvider = mockk()
+        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val sessionStore =
+            RedisSessionStore(
+                vertx = vertx,
+                redisClientProvider = redisClientProvider,
+                sessionCodec = sessionCodec,
+                sharedDataService = sharedDataService,
+            )
+
+        val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
+        every { redisClientProvider.get() } returns redisClient
+
+        val nonSession1Key = "test_randomKeyThatIsNotASessionKey"
+        val nonSession2Key = Base64.getEncoder().encodeToString(Random.nextBytes(17))
+        val nonSession3Key = ""
+
+        redisClient.set(nonSession1Key, "")
+        redisClient.set(nonSession2Key, "")
+        redisClient.set(nonSession3Key, "")
+
+        assertEquals(setOf(nonSession1Key, nonSession2Key, nonSession3Key), redisClient.keys("*"))
+
+        sessionStore.clear().toCompletableFuture().get(2, TimeUnit.SECONDS)
+
+        assertEquals(setOf(nonSession1Key, nonSession2Key, nonSession3Key), redisClient.keys("*"))
 
         vertx.close()
     }
@@ -503,21 +735,37 @@ class RedisSessionStoreTest {
     fun `the number of sessions in the db can be retrieved`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionStore = RedisSessionStore(vertx = vertx, redisClientProvider = redisClientProvider)
+        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val sessionStore =
+            RedisSessionStore(
+                vertx = vertx,
+                redisClientProvider = redisClientProvider,
+                sessionCodec = sessionCodec,
+                sharedDataService = sharedDataService,
+            )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
         every { redisClientProvider.get() } returns redisClient
 
-        val sessionKey1: String =
-            "uk.co.rafearnold.captainsonar.session." + Base64.getEncoder().encodeToString(Random.nextBytes(17))
-        val sessionKey2: String =
-            "uk.co.rafearnold.captainsonar.session." + Base64.getEncoder().encodeToString(Random.nextBytes(3464))
+        val session1Id = Base64.getEncoder().encodeToString(Random.nextBytes(17))
+        val session2Id = Base64.getEncoder().encodeToString(Random.nextBytes(3464))
+        val session3Id = Base64.getEncoder().encodeToString(Random.nextBytes(45))
+        val shadow1Key = "uk.co.rafearnold.captainsonar.session-shadow.$session1Id"
+        val shadow2Key = "uk.co.rafearnold.captainsonar.session-shadow.$session2Id"
+        val session1Key = "uk.co.rafearnold.captainsonar.session.$session1Id"
+        val session2Key = "uk.co.rafearnold.captainsonar.session.$session2Id"
+        val session3Key = "uk.co.rafearnold.captainsonar.session.$session3Id"
         val nonSessionKey1 = "test_randomKeyThatIsNotASessionKey"
         val nonSessionKey2 = Base64.getEncoder().encodeToString(Random.nextBytes(17))
         val nonSessionKey3 = ""
 
-        redisClient.set(sessionKey1, "")
-        redisClient.set(sessionKey2, "")
+        redisClient.set(shadow1Key, "")
+        redisClient.set(shadow2Key, "")
+        redisClient.set(session1Key, "")
+        redisClient.set(session2Key, "")
+        redisClient.set(session3Key, "")
         redisClient.set(nonSessionKey1, "")
         redisClient.set(nonSessionKey2, "")
         redisClient.set(nonSessionKey3, "")
