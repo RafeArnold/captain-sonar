@@ -8,7 +8,6 @@ import uk.co.rafearnold.captainsonar.common.NoSuchPlayerFoundException
 import uk.co.rafearnold.captainsonar.common.PlayerAlreadyJoinedGameException
 import uk.co.rafearnold.captainsonar.common.Register
 import uk.co.rafearnold.captainsonar.common.UserIsNotHostException
-import uk.co.rafearnold.captainsonar.common.runAsync
 import uk.co.rafearnold.captainsonar.config.ObservableMap
 import uk.co.rafearnold.captainsonar.eventapi.v1.EventApiV1Service
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEventEventApiV1Model
@@ -164,12 +163,13 @@ class GameServiceImpl @Inject constructor(
     private fun sendEventToListeners(gameId: String, event: GameEvent) {
         val listeners: MutableMap<String, GameListener> = gameEventListeners[gameId] ?: return
         for ((listenerId: String, listener: GameListener) in listeners) {
-            runAsync(listenerExecutor) {
-                log.debug("Listener '$listenerId' handling event '$event'")
-                listener.handle(event)
-                log.debug("Listener '$listenerId' successfully handled event '$event'")
+            listenerExecutor.execute {
+                runCatching {
+                    log.debug("Listener '$listenerId' handling event '$event'")
+                    listener.handle(event)
+                    log.debug("Listener '$listenerId' successfully handled event '$event'")
+                }.onFailure { log.error("Listener '$listenerId' failed to handle event '$event'", it) }
             }
-                .exceptionally { log.error("Listener '$listenerId' failed to handle event '$event'", it); null }
         }
     }
 
