@@ -249,7 +249,8 @@ class ObservableMutableMapImpl<K, V : Any>(
             private val map: ObservableMutableMapImpl<K, V>
         ) : MutableIterator<MutableMap.MutableEntry<K, V>> {
 
-            private val backingIterator: MutableIterator<MutableMap.MutableEntry<K, V>> = map.entries.iterator()
+            private val backingIterator: MutableIterator<MutableMap.MutableEntry<K, V>> =
+                map.backingMap.entries.iterator()
 
             private var currentEntry: MutableMap.MutableEntry<K, V>? = null
 
@@ -398,7 +399,7 @@ class ObservableMutableMapImpl<K, V : Any>(
             private val map: ObservableMutableMapImpl<K, V>
         ) : MutableIterator<K> {
 
-            private val backingIterator: MutableIterator<K> = map.keys.iterator()
+            private val backingIterator: MutableIterator<K> = map.backingMap.keys.iterator()
 
             private var currentKey: K? = null
 
@@ -503,7 +504,7 @@ class ObservableMutableMapImpl<K, V : Any>(
             private val map: ObservableMutableMapImpl<K, V>
         ) : MutableIterator<V> {
 
-            private val backingIterator: MutableIterator<V> = map.values.iterator()
+            private val backingIterator: MutableIterator<V> = map.backingMap.values.iterator()
 
             private var currentValue: V? = null
 

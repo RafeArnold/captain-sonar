@@ -231,7 +231,8 @@ class SimpleSharedMap<K, V : Any> private constructor(
             private val map: SimpleSharedMap<K, V>
         ) : MutableIterator<MutableMap.MutableEntry<K, V>> {
 
-            private val backingIterator: MutableIterator<MutableMap.MutableEntry<K, V>> = map.entries.iterator()
+            private val backingIterator: MutableIterator<MutableMap.MutableEntry<K, V>> =
+                map.wrappedMap.entries.iterator()
 
             private var currentEntry: MutableMap.MutableEntry<K, V>? = null
 
@@ -341,7 +342,8 @@ class SimpleSharedMap<K, V : Any> private constructor(
             private val map: SimpleSharedMap<K, V>
         ) : MutableIterator<K> {
 
-            private val backingIterator: MutableIterator<MutableMap.MutableEntry<K, V>> = map.entries.iterator()
+            private val backingIterator: MutableIterator<MutableMap.MutableEntry<K, V>> =
+                map.wrappedMap.entries.iterator()
 
             private var currentEntry: MutableMap.MutableEntry<K, V>? = null
 
@@ -431,7 +433,8 @@ class SimpleSharedMap<K, V : Any> private constructor(
             private val map: SimpleSharedMap<K, V>
         ) : MutableIterator<V> {
 
-            private val backingIterator: MutableIterator<MutableMap.MutableEntry<K, V>> = map.entries.iterator()
+            private val backingIterator: MutableIterator<MutableMap.MutableEntry<K, V>> =
+                map.wrappedMap.entries.iterator()
 
             private var currentEntry: MutableMap.MutableEntry<K, V>? = null
 
