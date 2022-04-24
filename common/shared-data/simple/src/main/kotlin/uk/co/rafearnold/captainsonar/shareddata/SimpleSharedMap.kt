@@ -265,6 +265,12 @@ class SimpleSharedMap<K, V : Any> private constructor(
                     map.lock.withLock { backingEntry.setValue(newValue).also { map.rescheduleRemoval(key = key) } }
             }
         }
+
+        override fun equals(other: Any?): Boolean = map.wrappedMap.entries == other
+
+        override fun hashCode(): Int = map.wrappedMap.entries.hashCode()
+
+        override fun toString(): String = "EntrySet(map=$map)"
     }
 
     class KeySet<K, V : Any>(
@@ -363,6 +369,12 @@ class SimpleSharedMap<K, V : Any> private constructor(
                     if (entry != null) map.cancelScheduledRemoval(key = entry.key)
                 }
         }
+
+        override fun equals(other: Any?): Boolean = map.wrappedMap.keys == other
+
+        override fun hashCode(): Int = map.wrappedMap.keys.hashCode()
+
+        override fun toString(): String = "KeySet(map=$map)"
     }
 
     class ValueCollection<K, V : Any>(
@@ -454,6 +466,12 @@ class SimpleSharedMap<K, V : Any> private constructor(
                     if (entry != null) map.cancelScheduledRemoval(key = entry.key)
                 }
         }
+
+        override fun equals(other: Any?): Boolean = map.wrappedMap.values == other
+
+        override fun hashCode(): Int = map.wrappedMap.values.hashCode()
+
+        override fun toString(): String = "ValueCollection(map=$map)"
     }
 
     private fun rescheduleRemoval(key: K, ttl: Long = defaultTtlMillis, ttlUnit: TimeUnit = TimeUnit.MILLISECONDS) {
@@ -513,6 +531,12 @@ class SimpleSharedMap<K, V : Any> private constructor(
             }
         }
     }
+
+    override fun equals(other: Any?): Boolean = wrappedMap == other
+
+    override fun hashCode(): Int = wrappedMap.hashCode()
+
+    override fun toString(): String = "SimpleSharedMap(wrappedMap=$wrappedMap)"
 
     companion object {
         private val log: Logger = LoggerFactory.getLogger(SimpleSharedMap::class.java)
