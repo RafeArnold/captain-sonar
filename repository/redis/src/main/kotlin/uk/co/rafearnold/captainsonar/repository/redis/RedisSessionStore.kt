@@ -97,15 +97,10 @@ internal class RedisSessionStore(
         lock.withLock {
             log.trace("Clearing all sessions")
             redisClient.use { client: Jedis ->
-                val shadowKeys: Array<String> = client.keys(sessionShadowKey(sessionId = "*")).toTypedArray()
-                if (shadowKeys.isNotEmpty()) {
-                    client.del(*shadowKeys)
-                    for (index: Int in shadowKeys.indices) {
-                        val shadowKey: String = shadowKeys[index]
-                        shadowKeys[index] = sessionKey(sessionId = getSessionIdFromShadowKey(shadowKey = shadowKey))
-                    }
-                    client.del(*shadowKeys)
-                }
+                val shadowKeys: Set<String> = client.keys(sessionShadowKey(sessionId = "*"))
+                if (shadowKeys.isNotEmpty()) client.del(*shadowKeys.toTypedArray())
+                val sessionKeys: Set<String> = client.keys(sessionKey(sessionId = "*"))
+                if (sessionKeys.isNotEmpty()) client.del(*sessionKeys.toTypedArray())
             }
         }
         resultHandler.handle(Future.succeededFuture())

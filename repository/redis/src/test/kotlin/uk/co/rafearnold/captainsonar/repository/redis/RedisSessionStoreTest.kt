@@ -691,7 +691,7 @@ class RedisSessionStoreTest {
 
         sessionStore.clear().toCompletableFuture().get(2, TimeUnit.SECONDS)
 
-        assertEquals(setOf(session4Key, nonSession1Key, nonSession2Key, nonSession3Key), redisClient.keys("*"))
+        assertEquals(setOf(nonSession1Key, nonSession2Key, nonSession3Key), redisClient.keys("*"))
 
         vertx.close()
     }
