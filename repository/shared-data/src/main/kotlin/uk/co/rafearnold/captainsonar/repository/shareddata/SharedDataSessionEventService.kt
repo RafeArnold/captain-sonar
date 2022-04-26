@@ -2,18 +2,19 @@ package uk.co.rafearnold.captainsonar.repository.shareddata
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import uk.co.rafearnold.captainsonar.common.Subscription
 import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
 import uk.co.rafearnold.captainsonar.repository.session.SessionEvent
-import uk.co.rafearnold.captainsonar.repository.session.SessionEventHandler
 import uk.co.rafearnold.captainsonar.repository.session.SessionEventService
 import uk.co.rafearnold.captainsonar.repository.session.SessionExpiredEvent
 import uk.co.rafearnold.captainsonar.shareddata.EntryExpiredEvent
 import uk.co.rafearnold.captainsonar.shareddata.SharedMap
 import uk.co.rafearnold.captainsonar.shareddata.SharedMapEvent
-import java.util.*
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executor
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
+import java.util.concurrent.Flow
+import java.util.concurrent.SubmissionPublisher
+import java.util.function.Consumer
 import javax.inject.Inject
 
 internal class SharedDataSessionEventService @Inject constructor(
@@ -21,9 +22,10 @@ internal class SharedDataSessionEventService @Inject constructor(
     private val sessionCodec: SessionCodec,
 ) : SessionEventService {
 
-    private val expiredEventSubscriptions: MutableMap<String, SessionEventHandler> = ConcurrentHashMap()
-
-    private val subscriptionHandlerExecutor: Executor = Executors.newCachedThreadPool()
+    private val subscriptionPublisher: SubmissionPublisher<SessionEvent> =
+        SubmissionPublisher(Executors.newCachedThreadPool(), Flow.defaultBufferSize()) { _, throwable: Throwable ->
+            log.error("Subscription failed to handle event", throwable)
+        }
 
     init {
         dataMap.addListener { mapEvent: SharedMapEvent<String, ByteArray> ->
@@ -32,32 +34,16 @@ internal class SharedDataSessionEventService @Inject constructor(
                     val sessionEvent: SessionEvent =
                         SessionExpiredEvent(session = sessionCodec.deserialize(bytes = mapEvent.oldValue))
                     log.debug("Expired session event received: $sessionEvent")
-                    runSubscriptionHandlers(event = sessionEvent)
+                    subscriptionPublisher.submit(sessionEvent)
                 }
                 else -> log.trace("Ignoring map event '$mapEvent'")
             }
         }
     }
 
-    override fun subscribeToSessionEvents(handler: SessionEventHandler): String {
-        val subscriptionId: String = UUID.randomUUID().toString()
-        expiredEventSubscriptions[subscriptionId] = handler
-        return subscriptionId
-    }
-
-    override fun unsubscribeFromSessionEvents(subscriptionId: String) {
-        expiredEventSubscriptions.remove(subscriptionId)
-    }
-
-    private fun runSubscriptionHandlers(event: SessionEvent) {
-        for ((subscriptionId: String, handler: SessionEventHandler) in expiredEventSubscriptions) {
-            subscriptionHandlerExecutor.execute {
-                runCatching { handler.handle(event) }
-                    .onFailure {
-                        log.error("Subscription '$subscriptionId' failed to handle event '$event'", it)
-                    }
-            }
-        }
+    override fun subscribeToSessionEvents(consumer: Consumer<SessionEvent>): Subscription {
+        val subscriptionFuture: CompletableFuture<Void> = subscriptionPublisher.consume(consumer)
+        return Subscription { subscriptionFuture.complete(null) }
     }
 
     companion object {

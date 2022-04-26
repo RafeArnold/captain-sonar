@@ -20,6 +20,7 @@ import redis.clients.jedis.DefaultJedisClientConfig
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.JedisPool
 import redis.clients.jedis.params.SetParams
+import uk.co.rafearnold.captainsonar.common.Subscription
 import uk.co.rafearnold.captainsonar.config.ObservableMutableMap
 import uk.co.rafearnold.captainsonar.config.ObservableMutableMapImpl
 import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
@@ -81,7 +82,7 @@ class RedisSessionEventServiceTest {
         every { redisClientProvider.get() } answers { redisClientPool.resource }
 
         val subscription1Events: Queue<SessionEvent> = ConcurrentLinkedQueue()
-        val subscription1Id: String = eventService.subscribeToSessionEvents { subscription1Events.add(it) }
+        val subscription1: Subscription = eventService.subscribeToSessionEvents { subscription1Events.add(it) }
 
         val session1 =
             SharedDataSessionImpl(VertxContextPRNG.current(vertx), 23, SessionStore.DEFAULT_SESSIONID_LENGTH)
@@ -113,7 +114,7 @@ class RedisSessionEventServiceTest {
         assertEquals(session1.lastAccessed(), subscription1Event1.session.lastAccessed())
 
         val subscription2Events: Queue<SessionEvent> = ConcurrentLinkedQueue()
-        val subscription2Id: String = eventService.subscribeToSessionEvents { subscription2Events.add(it) }
+        val subscription2: Subscription = eventService.subscribeToSessionEvents { subscription2Events.add(it) }
 
         redisClient.pexpire("uk.co.rafearnold.captainsonar.session-shadow.${session2.id()}", ttlMs)
 
@@ -132,7 +133,7 @@ class RedisSessionEventServiceTest {
         val subscription2Event1: SessionExpiredEvent = subscription2Events.poll() as SessionExpiredEvent
         assertEquals(session2.id(), subscription2Event1.session.id())
 
-        eventService.unsubscribeFromSessionEvents(subscriptionId = subscription1Id)
+        subscription1.cancel()
 
         redisClient.set(
             "uk.co.rafearnold.captainsonar.session.${session1.id()}".toByteArray(Charsets.UTF_8),
@@ -148,7 +149,7 @@ class RedisSessionEventServiceTest {
         assertEquals(session1.id(), subscription2Event2.session.id())
         assertEquals(0, subscription1Events.size)
 
-        eventService.unsubscribeFromSessionEvents(subscriptionId = subscription2Id)
+        subscription2.cancel()
 
         redisClient.set(
             "uk.co.rafearnold.captainsonar.session.${session2.id()}".toByteArray(Charsets.UTF_8),

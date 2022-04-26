@@ -5,20 +5,22 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.JedisPubSub
+import uk.co.rafearnold.captainsonar.common.Subscription
 import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
 import uk.co.rafearnold.captainsonar.repository.session.SessionEvent
-import uk.co.rafearnold.captainsonar.repository.session.SessionEventHandler
 import uk.co.rafearnold.captainsonar.repository.session.SessionEventService
 import uk.co.rafearnold.captainsonar.repository.session.SessionExpiredEvent
-import java.util.*
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
+import java.util.concurrent.Flow
+import java.util.concurrent.SubmissionPublisher
 import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
+import java.util.function.Consumer
 import javax.inject.Inject
 import kotlin.concurrent.withLock
 
@@ -30,7 +32,10 @@ internal class RedisSessionEventService @Inject constructor(
     private val sessionCodec: SessionCodec,
 ) : SessionEventService {
 
-    private val eventSubscriptions: MutableMap<String, SessionEventHandler> = ConcurrentHashMap()
+    private val subscriptionPublisher: SubmissionPublisher<SessionEvent> =
+        SubmissionPublisher(Executors.newCachedThreadPool(), Flow.defaultBufferSize()) { _, throwable: Throwable ->
+            log.error("Subscription failed to handle event", throwable)
+        }
 
     private val lock: Lock = ReentrantLock()
 
@@ -52,20 +57,18 @@ internal class RedisSessionEventService @Inject constructor(
     private val redisSubscriptionExecutor: Executor =
         // Thread pool of size 2 to allow a new subscription to be opened before the existing one is closed.
         ThreadPoolExecutor(0, 2, 5L, TimeUnit.SECONDS, SynchronousQueue())
-    private val internalSubscriptionExecutor: Executor = Executors.newCachedThreadPool()
 
-    override fun subscribeToSessionEvents(handler: SessionEventHandler): String =
+    override fun subscribeToSessionEvents(consumer: Consumer<SessionEvent>): Subscription =
         lock.withLock {
-            val subscriptionId: String = UUID.randomUUID().toString()
-            eventSubscriptions[subscriptionId] = handler
+            val subscriptionFuture: CompletableFuture<Void> = subscriptionPublisher.consume(consumer)
             if (redisClient == null) redisClient = openRedisSubscription()
-            subscriptionId
+            Subscription { unsubscribeFromSessionEvents(subscriptionFuture = subscriptionFuture) }
         }
 
-    override fun unsubscribeFromSessionEvents(subscriptionId: String) =
+    private fun unsubscribeFromSessionEvents(subscriptionFuture: CompletableFuture<Void>) =
         lock.withLock {
-            eventSubscriptions.remove(subscriptionId)
-            if (eventSubscriptions.isEmpty()) {
+            subscriptionFuture.complete(null)
+            if (subscriptionPublisher.numberOfSubscribers == 0) {
                 redisClient?.close()
                 redisClient = null
             }
@@ -90,7 +93,7 @@ internal class RedisSessionEventService @Inject constructor(
                             else {
                                 val event: SessionEvent = SessionExpiredEvent(session = session)
                                 log.debug("Expired session event received: $event")
-                                runSubscriptionHandlers(event = event)
+                                subscriptionPublisher.submit(event)
                             }
                         }
                     }
@@ -106,17 +109,6 @@ internal class RedisSessionEventService @Inject constructor(
             }
         }
         return redisClient
-    }
-
-    private fun runSubscriptionHandlers(event: SessionEvent) {
-        for ((subscriptionId: String, handler: SessionEventHandler) in eventSubscriptions) {
-            internalSubscriptionExecutor.execute {
-                runCatching { handler.handle(event) }
-                    .onFailure {
-                        log.error("Subscription '$subscriptionId' failed to handle event '$event'", it)
-                    }
-            }
-        }
     }
 
     companion object {

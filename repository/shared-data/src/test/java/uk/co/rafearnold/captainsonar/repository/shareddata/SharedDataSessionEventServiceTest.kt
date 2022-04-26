@@ -9,6 +9,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import uk.co.rafearnold.captainsonar.common.Subscription
 import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
 import uk.co.rafearnold.captainsonar.repository.session.SessionCodecImpl
 import uk.co.rafearnold.captainsonar.repository.session.SessionEvent
@@ -46,7 +47,7 @@ class SharedDataSessionEventServiceTest {
         val timeout: Long = 10
 
         val subscription1Events: Queue<SessionEvent> = ConcurrentLinkedQueue()
-        val subscription1Id: String = eventService.subscribeToSessionEvents { subscription1Events.add(it) }
+        val subscription1: Subscription = eventService.subscribeToSessionEvents { subscription1Events.add(it) }
 
         val session1 = SharedDataSessionImpl(VertxContextPRNG.current(vertx), timeout, 25)
         session1.data()["test_dataKey1"] = "test_dataValue1"
@@ -63,7 +64,7 @@ class SharedDataSessionEventServiceTest {
         assertEquals(session1.data(), subscription1Event1.session.data())
 
         val subscription2Events: Queue<SessionEvent> = ConcurrentLinkedQueue()
-        val subscription2Id: String = eventService.subscribeToSessionEvents { subscription2Events.add(it) }
+        val subscription2: Subscription = eventService.subscribeToSessionEvents { subscription2Events.add(it) }
 
         val session2 = SharedDataSessionImpl(VertxContextPRNG.current(vertx), timeout, 5)
         session2.data()["test_dataKey2"] = "test_dataValue2"
@@ -89,7 +90,7 @@ class SharedDataSessionEventServiceTest {
         assertEquals(session2.version(), subscription2Event1.session.version())
         assertEquals(session2.data(), subscription2Event1.session.data())
 
-        eventService.unsubscribeFromSessionEvents(subscriptionId = subscription1Id)
+        subscription1.cancel()
 
         val session3 = SharedDataSessionImpl(VertxContextPRNG.current(vertx), timeout, 73)
         session3.data()["test_dataKey5"] = "test_dataValue5"
@@ -107,7 +108,7 @@ class SharedDataSessionEventServiceTest {
         assertEquals(session3.data(), subscription2Event2.session.data())
         assertEquals(0, subscription1Events.size)
 
-        eventService.unsubscribeFromSessionEvents(subscriptionId = subscription2Id)
+        subscription2.cancel()
 
         val session4 = SharedDataSessionImpl(VertxContextPRNG.current(vertx), timeout, 53)
         dataMap.put(session4.id(), sessionCodec.serialize(session = session4), timeout, TimeUnit.MILLISECONDS)
