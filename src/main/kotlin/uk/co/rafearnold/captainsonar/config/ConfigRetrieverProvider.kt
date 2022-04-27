@@ -37,6 +37,11 @@ class ConfigRetrieverProvider @Inject constructor(
                 .setType("env")
                 .setConfig(JsonObject().put(rawDataConfigName, true))
         retrieverOptions.addStore(environmentPropertiesStoreOptions)
+        val jsonConfigStoreOptions: ConfigStoreOptions =
+            ConfigStoreOptions()
+                .setType("json")
+                .setConfig(vertx.orCreateContext.config())
+        retrieverOptions.addStore(jsonConfigStoreOptions)
 
         val scanPeriod: Long? =
             (System.getProperty("application.properties.scanPeriodMs")
