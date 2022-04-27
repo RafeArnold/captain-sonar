@@ -16,4 +16,6 @@ interface GameRepository {
     ): StoredGame
 
     fun deleteGame(gameId: String): StoredGame?
+
+    fun gameExists(gameId: String): Boolean
 }

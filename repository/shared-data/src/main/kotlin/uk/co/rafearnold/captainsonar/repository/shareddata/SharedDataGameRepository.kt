@@ -61,6 +61,8 @@ class SharedDataGameRepository @Inject constructor(
     override fun deleteGame(gameId: String): StoredGame? =
         lock.withLock { map.remove(gameIdKey(gameId = gameId))?.deserializeStoredGame() }
 
+    override fun gameExists(gameId: String): Boolean = lock.withLock { map.containsKey(gameIdKey(gameId = gameId)) }
+
     private fun StoredGame.serialize(): String = objectMapper.writeValueAsString(this)
 
     private fun String.deserializeStoredGame(): StoredGame? =

@@ -136,6 +136,7 @@ class GameServiceImpl @Inject constructor(
     }
 
     override fun addGameListener(gameId: String, consumer: Consumer<GameEvent>): Subscription {
+        assertGameExists(gameId = gameId)
         val subscriptionFuture: CompletableFuture<Void> =
             submissionPublishers.computeIfAbsent(gameId) {
                 SubmissionPublisher(
@@ -144,6 +145,10 @@ class GameServiceImpl @Inject constructor(
                 ) { _, throwable: Throwable -> log.error("Listener failed to handle event", throwable) }
             }.consume(consumer)
         return Subscription { subscriptionFuture.complete(null) }
+    }
+
+    private fun assertGameExists(gameId: String) {
+        if (!gameRepository.gameExists(gameId = gameId)) throw NoSuchGameFoundException(gameId = gameId)
     }
 
     private fun loadGameAndConfirmHost(gameId: String, playerId: String): StoredGame {

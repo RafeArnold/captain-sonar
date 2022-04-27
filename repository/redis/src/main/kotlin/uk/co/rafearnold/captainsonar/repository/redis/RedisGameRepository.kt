@@ -78,6 +78,9 @@ class RedisGameRepository @Inject constructor(
             }
         }
 
+    override fun gameExists(gameId: String): Boolean =
+        lock.withLock { redisClient.exists(gameIdKey(gameId = gameId)) }
+
     private fun StoredGame.serialize(): String = objectMapper.writeValueAsString(this)
 
     private fun String?.deserializeStoredGame() =
