@@ -1,6 +1,7 @@
 package uk.co.rafearnold.captainsonar.restapiv1
 
 import io.vertx.ext.web.RoutingContext
+import uk.co.rafearnold.captainsonar.common.Subscription
 import uk.co.rafearnold.captainsonar.restapiv1.model.CreateGameRequestRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.CreateGameResponseRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.GetGameStateResponseRestApiV1Model
@@ -30,7 +31,5 @@ interface RestApiV1Service {
 
     fun endGame(userId: String, gameId: String?)
 
-    fun streamGame(userId: String, gameId: String?, listener: RestApiV1GameListener): String
-
-    fun endStream(streamId: String, gameId: String?)
+    fun streamGame(userId: String, gameId: String?, listener: RestApiV1GameListener): Subscription
 }

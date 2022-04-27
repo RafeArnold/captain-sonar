@@ -1,6 +1,9 @@
 package uk.co.rafearnold.captainsonar
 
+import uk.co.rafearnold.captainsonar.common.Subscription
 import uk.co.rafearnold.captainsonar.model.Game
+import uk.co.rafearnold.captainsonar.model.GameEvent
+import java.util.function.Consumer
 
 interface GameService {
 
@@ -16,7 +19,5 @@ interface GameService {
 
     fun endGame(gameId: String, playerId: String)
 
-    fun addGameListener(gameId: String, listener: GameListener): String
-
-    fun removeGameListener(gameId: String, listenerId: String)
+    fun addGameListener(gameId: String, consumer: Consumer<GameEvent>): Subscription
 }

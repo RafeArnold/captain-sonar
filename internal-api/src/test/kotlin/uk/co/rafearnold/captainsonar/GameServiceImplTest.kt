@@ -22,6 +22,7 @@ import uk.co.rafearnold.captainsonar.common.GameAlreadyStartedException
 import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
 import uk.co.rafearnold.captainsonar.common.NoSuchPlayerFoundException
 import uk.co.rafearnold.captainsonar.common.PlayerAlreadyJoinedGameException
+import uk.co.rafearnold.captainsonar.common.Subscription
 import uk.co.rafearnold.captainsonar.common.UserIsNotHostException
 import uk.co.rafearnold.captainsonar.config.ObservableMap
 import uk.co.rafearnold.captainsonar.config.ObservableMutableMap
@@ -149,8 +150,6 @@ class GameServiceImplTest {
         CompletableFuture.runAsync { while (listener1Events.size != expectedListener1Events1.size); }
             .get(2, TimeUnit.SECONDS)
         assertEquals(expectedListener1Events1, listener1Events)
-        CompletableFuture.runAsync { while (listener2Events.size != 0); }
-            .get(2, TimeUnit.SECONDS)
         assertEquals(setOf<GameEvent>(), listener2Events)
 
         val eventApiEvent2: GameEventEventApiV1Model =
@@ -1796,9 +1795,9 @@ class GameServiceImplTest {
 
         val gameId = "test_gameId"
         val listener1Events: MutableSet<GameEvent> = ConcurrentHashMap.newKeySet()
-        val listener1Id: String = gameService.addGameListener(gameId) { listener1Events.add(it) }
+        val listener1Subscription: Subscription = gameService.addGameListener(gameId) { listener1Events.add(it) }
         val listener2Events: MutableSet<GameEvent> = ConcurrentHashMap.newKeySet()
-        val listener2Id: String = gameService.addGameListener(gameId) { listener2Events.add(it) }
+        val listener2Subscription: Subscription = gameService.addGameListener(gameId) { listener2Events.add(it) }
 
         val eventApiEvent1: GameEventEventApiV1Model =
             PlayerAddedEventEventApiV1Model(
@@ -1849,7 +1848,7 @@ class GameServiceImplTest {
             .get(2, TimeUnit.SECONDS)
         assertEquals(expectedListener2Events1, listener2Events)
 
-        gameService.removeGameListener(gameId, listener1Id)
+        listener1Subscription.cancel()
 
         val eventApiEvent2: GameEventEventApiV1Model =
             GameStartedEventEventApiV1Model(
@@ -1911,7 +1910,7 @@ class GameServiceImplTest {
             .get(2, TimeUnit.SECONDS)
         assertEquals(expectedListener2Events2, listener2Events)
 
-        gameService.removeGameListener(gameId, listener2Id)
+        listener2Subscription.cancel()
 
         val eventApiEvent3: GameEventEventApiV1Model = GameEndedEventEventApiV1Model(gameId = gameId)
         eventHandlerSlot.captured.handle(event = eventApiEvent3)

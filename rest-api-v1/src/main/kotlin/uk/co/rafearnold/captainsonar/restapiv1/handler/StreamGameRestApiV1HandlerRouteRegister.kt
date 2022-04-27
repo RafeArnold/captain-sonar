@@ -8,6 +8,7 @@ import io.vertx.core.http.HttpServerResponse
 import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 import uk.co.rafearnold.captainsonar.common.Register
+import uk.co.rafearnold.captainsonar.common.Subscription
 import uk.co.rafearnold.captainsonar.restapiv1.RestApiV1Service
 import uk.co.rafearnold.captainsonar.restapiv1.RestApiV1SessionService
 import java.util.concurrent.CompletableFuture
@@ -37,11 +38,11 @@ class StreamGameRestApiV1HandlerRouteRegister @Inject constructor(
                 .putHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_EVENT_STREAM)
                 .putHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
                 .putHeader(HttpHeaderNames.CACHE_CONTROL, HttpHeaderValues.NO_CACHE)
-        val streamId: String =
+        val streamSubscription: Subscription =
             apiService.streamGame(userId = userId, gameId = gameId) {
                 val data: String = objectMapper.writeValueAsString(it)
                 response.write("data: $data\n\n")
             }
-        response.endHandler { apiService.endStream(streamId = streamId, gameId = gameId) }
+        response.endHandler { streamSubscription.cancel() }
     }
 }

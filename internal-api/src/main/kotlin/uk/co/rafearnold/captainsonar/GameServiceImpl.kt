@@ -7,6 +7,7 @@ import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
 import uk.co.rafearnold.captainsonar.common.NoSuchPlayerFoundException
 import uk.co.rafearnold.captainsonar.common.PlayerAlreadyJoinedGameException
 import uk.co.rafearnold.captainsonar.common.Register
+import uk.co.rafearnold.captainsonar.common.Subscription
 import uk.co.rafearnold.captainsonar.common.UserIsNotHostException
 import uk.co.rafearnold.captainsonar.config.ObservableMap
 import uk.co.rafearnold.captainsonar.eventapi.v1.EventApiV1Service
@@ -29,12 +30,13 @@ import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
 import uk.co.rafearnold.captainsonar.shareddata.SharedLock
 import uk.co.rafearnold.captainsonar.shareddata.getDistributedLock
 import uk.co.rafearnold.captainsonar.shareddata.withLock
-import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executor
 import java.util.concurrent.Executors
+import java.util.concurrent.Flow
+import java.util.concurrent.SubmissionPublisher
 import java.util.concurrent.TimeUnit
+import java.util.function.Consumer
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -54,16 +56,15 @@ class GameServiceImpl @Inject constructor(
     private val lock: SharedLock =
         sharedDataService.getDistributedLock("uk.co.rafearnold.captainsonar.game-service.lock")
 
-    private val gameEventListeners: MutableMap<String, MutableMap<String, GameListener>> = ConcurrentHashMap()
-
-    private val listenerExecutor: Executor = Executors.newCachedThreadPool()
+    private val submissionPublishers: MutableMap<String, SubmissionPublisher<GameEvent>> = ConcurrentHashMap()
 
     override fun register(): CompletableFuture<Void> =
         CompletableFuture.runAsync {
             log.trace("Subscribing to game events")
             eventApiService.subscribeToGameEvents { event: GameEventEventApiV1Model ->
                 val (gameId: String, gameEvent: GameEvent) = modelMapper.mapToGameEventPair(event = event)
-                sendEventToListeners(gameId = gameId, event = gameEvent)
+                log.debug("Game event received for game '$gameId': $event")
+                submissionPublishers[gameId]?.submit(gameEvent)
             }
         }
 
@@ -131,18 +132,18 @@ class GameServiceImpl @Inject constructor(
             loadGameAndConfirmHost(gameId = gameId, playerId = playerId)
             gameRepository.deleteGame(gameId = gameId)
             publishEvent(gameId = gameId, event = gameEventFactory.createGameEndedEvent())
-            gameEventListeners.remove(gameId)
         }
     }
 
-    override fun addGameListener(gameId: String, listener: GameListener): String {
-        val listenerId: String = UUID.randomUUID().toString()
-        gameEventListeners.computeIfAbsent(gameId) { ConcurrentHashMap() }[listenerId] = listener
-        return listenerId
-    }
-
-    override fun removeGameListener(gameId: String, listenerId: String) {
-        gameEventListeners[gameId]?.remove(listenerId)
+    override fun addGameListener(gameId: String, consumer: Consumer<GameEvent>): Subscription {
+        val subscriptionFuture: CompletableFuture<Void> =
+            submissionPublishers.computeIfAbsent(gameId) {
+                SubmissionPublisher(
+                    Executors.newCachedThreadPool(),
+                    Flow.defaultBufferSize()
+                ) { _, throwable: Throwable -> log.error("Listener failed to handle event", throwable) }
+            }.consume(consumer)
+        return Subscription { subscriptionFuture.complete(null) }
     }
 
     private fun loadGameAndConfirmHost(gameId: String, playerId: String): StoredGame {
@@ -158,19 +159,6 @@ class GameServiceImpl @Inject constructor(
         val model: GameEventEventApiV1Model =
             modelMapper.mapToGameEventEventApiV1Model(gameId = gameId, event = event)
         eventApiService.publishGameEvent(event = model)
-    }
-
-    private fun sendEventToListeners(gameId: String, event: GameEvent) {
-        val listeners: MutableMap<String, GameListener> = gameEventListeners[gameId] ?: return
-        for ((listenerId: String, listener: GameListener) in listeners) {
-            listenerExecutor.execute {
-                runCatching {
-                    log.debug("Listener '$listenerId' handling event '$event'")
-                    listener.handle(event)
-                    log.debug("Listener '$listenerId' successfully handled event '$event'")
-                }.onFailure { log.error("Listener '$listenerId' failed to handle event '$event'", it) }
-            }
-        }
     }
 
     private fun updateGame(gameId: String, updateOperations: List<UpdateStoredGameOperation>): StoredGame =

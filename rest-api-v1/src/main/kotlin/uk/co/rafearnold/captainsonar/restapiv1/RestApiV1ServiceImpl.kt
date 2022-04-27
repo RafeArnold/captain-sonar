@@ -5,6 +5,7 @@ import io.vertx.ext.web.RoutingContext
 import uk.co.rafearnold.captainsonar.GameService
 import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
 import uk.co.rafearnold.captainsonar.common.PlayerAlreadyJoinedGameException
+import uk.co.rafearnold.captainsonar.common.Subscription
 import uk.co.rafearnold.captainsonar.model.Game
 import uk.co.rafearnold.captainsonar.restapiv1.model.CreateGameRequestRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.CreateGameResponseRestApiV1Model
@@ -98,14 +99,10 @@ class RestApiV1ServiceImpl @Inject constructor(
         lock.withLock { gameService.endGame(gameId = gameId.ensureGameIdIsNonNull(), playerId = userId) }
     }
 
-    override fun streamGame(userId: String, gameId: String?, listener: RestApiV1GameListener): String =
+    override fun streamGame(userId: String, gameId: String?, listener: RestApiV1GameListener): Subscription =
         gameService.addGameListener(gameId.ensureGameIdIsNonNull()) {
             listener.handle(event = modelMapper.mapToGameEventRestApiV1Model(event = it, userId = userId))
         }
-
-    override fun endStream(streamId: String, gameId: String?) {
-        gameService.removeGameListener(gameId = gameId.ensureGameIdIsNonNull(), listenerId = streamId)
-    }
 
     private fun String?.ensureGameIdIsNull() {
         if (this != null)
