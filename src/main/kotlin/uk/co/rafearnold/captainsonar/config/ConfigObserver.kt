@@ -11,7 +11,7 @@ class ConfigObserver @Inject constructor(
 ) : Register {
 
     override fun register(): CompletableFuture<Void> =
-        CompletableFuture.runAsync { config.addListener(".*") { log.info(it.toString()) } }
+        CompletableFuture.runAsync { config.addListener(".*") { log.debug(it.toString()) } }
 
     companion object {
         private val log: Logger = LoggerFactory.getLogger(ConfigObserver::class.java)

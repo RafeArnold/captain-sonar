@@ -52,7 +52,6 @@ class MainModule(
 
         multibinder.addBinding().to(ServerRegister::class.java).`in`(Scopes.SINGLETON)
 
-        // TODO: Remove.
         multibinder.addBinding().to(ConfigObserver::class.java).`in`(Scopes.SINGLETON)
     }
 }
