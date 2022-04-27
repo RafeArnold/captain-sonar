@@ -36,9 +36,12 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Flow
 import java.util.concurrent.SubmissionPublisher
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReentrantLock
 import java.util.function.Consumer
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.concurrent.withLock
 
 @Singleton
 class GameServiceImpl @Inject constructor(
@@ -56,6 +59,8 @@ class GameServiceImpl @Inject constructor(
     private val lock: SharedLock =
         sharedDataService.getDistributedLock("uk.co.rafearnold.captainsonar.game-service.lock")
 
+    // A local lock since publishers are only relevant within a cluster member.
+    private val publisherLock: Lock = ReentrantLock()
     private val submissionPublishers: MutableMap<String, SubmissionPublisher<GameEvent>> = ConcurrentHashMap()
 
     override fun register(): CompletableFuture<Void> =
@@ -64,7 +69,7 @@ class GameServiceImpl @Inject constructor(
             eventApiService.subscribeToGameEvents { event: GameEventEventApiV1Model ->
                 val (gameId: String, gameEvent: GameEvent) = modelMapper.mapToGameEventPair(event = event)
                 log.debug("Game event received for game '$gameId': $event")
-                submissionPublishers[gameId]?.submit(gameEvent)
+                publisherLock.withLock { submissionPublishers[gameId]?.submit(gameEvent) }
             }
         }
 
@@ -135,20 +140,36 @@ class GameServiceImpl @Inject constructor(
         }
     }
 
-    override fun addGameListener(gameId: String, consumer: Consumer<GameEvent>): Subscription {
-        assertGameExists(gameId = gameId)
-        val subscriptionFuture: CompletableFuture<Void> =
-            submissionPublishers.computeIfAbsent(gameId) {
-                SubmissionPublisher(
-                    Executors.newCachedThreadPool(),
-                    Flow.defaultBufferSize()
-                ) { _, throwable: Throwable -> log.error("Listener failed to handle event", throwable) }
-            }.consume(consumer)
-        return Subscription { subscriptionFuture.complete(null) }
-    }
+    override fun addGameListener(gameId: String, consumer: Consumer<GameEvent>): Subscription =
+        lock.withLock {
+            assertGameExists(gameId = gameId)
+            val subscriptionFuture: CompletableFuture<Void> =
+                publisherLock.withLock {
+                    submissionPublishers.computeIfAbsent(gameId) { createPublisher(gameId = gameId) }.consume(consumer)
+                }
+            return Subscription {
+                subscriptionFuture.complete(null)
+                removeGameEventPublisherIfNoSubscribers(gameId = gameId)
+            }
+        }
 
     private fun assertGameExists(gameId: String) {
         if (!gameRepository.gameExists(gameId = gameId)) throw NoSuchGameFoundException(gameId = gameId)
+    }
+
+    private fun createPublisher(gameId: String): SubmissionPublisher<GameEvent> =
+        SubmissionPublisher(Executors.newCachedThreadPool(), Flow.defaultBufferSize()) { _, throwable: Throwable ->
+            log.error("Listener failed to handle event for game '$gameId'", throwable)
+        }
+
+    private fun removeGameEventPublisherIfNoSubscribers(gameId: String) {
+        publisherLock.withLock {
+            val publisher: SubmissionPublisher<GameEvent> = submissionPublishers[gameId] ?: return
+            if (publisher.numberOfSubscribers == 0) {
+                submissionPublishers.remove(gameId)
+                publisher.close()
+            }
+        }
     }
 
     private fun loadGameAndConfirmHost(gameId: String, playerId: String): StoredGame {
