@@ -25,6 +25,6 @@ class GetGameStateRestApiV1HandlerRouteRegister @Inject constructor(
         }
 
     override fun handle(ctx: RoutingContext, userId: String, gameId: String?): Any {
-        return apiService.getGameState(userId = userId, gameId = gameId, ctx = ctx)
+        return apiService.getGameState(userId = userId, gameId = gameId, session = ctx.session())
     }
 }

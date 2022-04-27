@@ -39,7 +39,7 @@ class StreamGameRestApiV1HandlerRouteRegister @Inject constructor(
                 .putHeader(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
                 .putHeader(HttpHeaderNames.CACHE_CONTROL, HttpHeaderValues.NO_CACHE)
         val streamSubscription: Subscription =
-            apiService.streamGame(userId = userId, gameId = gameId) {
+            apiService.streamGame(userId = userId, gameId = gameId, session = ctx.session()) {
                 val data: String = objectMapper.writeValueAsString(it)
                 response.write("data: $data\n\n")
             }

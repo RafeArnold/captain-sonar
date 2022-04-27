@@ -1,7 +1,7 @@
 package uk.co.rafearnold.captainsonar.restapiv1
 
 import io.netty.handler.codec.http.HttpResponseStatus
-import io.vertx.ext.web.RoutingContext
+import io.vertx.ext.web.Session
 import uk.co.rafearnold.captainsonar.GameService
 import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
 import uk.co.rafearnold.captainsonar.common.PlayerAlreadyJoinedGameException
@@ -31,17 +31,13 @@ class RestApiV1ServiceImpl @Inject constructor(
     private val lock: SharedLock =
         sharedDataService.getDistributedLock(name = "uk.co.rafearnold.captainsonar.rest-api-v1.service.lock")
 
-    override fun getGameState(
-        userId: String,
-        gameId: String?,
-        ctx: RoutingContext
-    ): GetGameStateResponseRestApiV1Model =
+    override fun getGameState(userId: String, gameId: String?, session: Session): GetGameStateResponseRestApiV1Model =
         if (gameId == null) {
             GetGameStateResponseRestApiV1Model(gameState = null)
         } else {
             val game: Game? = gameService.getGame(gameId = gameId)
             if (game == null) {
-                sessionService.removeGameId(session = ctx.session())
+                sessionService.removeGameId(session = session)
                 GetGameStateResponseRestApiV1Model(gameState = null)
             } else {
                 val gameStateModel: GameStateRestApiV1Model =
@@ -54,12 +50,12 @@ class RestApiV1ServiceImpl @Inject constructor(
         userId: String,
         gameId: String?,
         request: CreateGameRequestRestApiV1Model,
-        ctx: RoutingContext
+        session: Session
     ): CreateGameResponseRestApiV1Model =
         lock.withLock {
             gameId.ensureGameIdIsNull()
             val game: Game = gameService.createGame(hostId = userId, hostName = request.hostName)
-            sessionService.setGameId(session = ctx.session(), gameId = game.id)
+            sessionService.setGameId(session = session, gameId = game.id)
             CreateGameResponseRestApiV1Model(
                 gameState = modelMapper.mapToGameStateRestApiV1Model(game = game, userId = userId)
             )
@@ -69,7 +65,7 @@ class RestApiV1ServiceImpl @Inject constructor(
         userId: String,
         gameId: String?,
         request: JoinGameRequestRestApiV1Model,
-        ctx: RoutingContext
+        session: Session
     ): JoinGameResponseRestApiV1Model =
         lock.withLock {
             gameId.ensureGameIdIsNull()
@@ -81,27 +77,50 @@ class RestApiV1ServiceImpl @Inject constructor(
                         ?: throw NoSuchGameFoundException(gameId = e.gameId)
                     // TODO: Rename the player to the requested name.
                 }
-            sessionService.setGameId(session = ctx.session(), gameId = game.id)
+            sessionService.setGameId(session = session, gameId = game.id)
             JoinGameResponseRestApiV1Model(
                 gameState = modelMapper.mapToGameStateRestApiV1Model(game = game, userId = userId)
             )
         }
 
-    override fun startGame(userId: String, gameId: String?): StartGameResponseRestApiV1Model =
+    override fun startGame(userId: String, gameId: String?, session: Session): StartGameResponseRestApiV1Model =
         lock.withLock {
-            val game: Game = gameService.startGame(gameId = gameId.ensureGameIdIsNonNull(), playerId = userId)
+            val game: Game =
+                try {
+                    gameService.startGame(gameId = gameId.ensureGameIdIsNonNull(), playerId = userId)
+                } catch (e: NoSuchGameFoundException) {
+                    sessionService.removeGameId(session = session)
+                    throw e
+                }
             StartGameResponseRestApiV1Model(
                 gameState = modelMapper.mapToGameStateRestApiV1Model(game = game, userId = userId)
             )
         }
 
-    override fun endGame(userId: String, gameId: String?) {
-        lock.withLock { gameService.endGame(gameId = gameId.ensureGameIdIsNonNull(), playerId = userId) }
+    override fun endGame(userId: String, gameId: String?, session: Session) {
+        lock.withLock {
+            try {
+                gameService.endGame(gameId = gameId.ensureGameIdIsNonNull(), playerId = userId)
+            } catch (e: NoSuchGameFoundException) {
+                sessionService.removeGameId(session = session)
+                throw e
+            }
+        }
     }
 
-    override fun streamGame(userId: String, gameId: String?, listener: RestApiV1GameListener): Subscription =
-        gameService.addGameListener(gameId.ensureGameIdIsNonNull()) {
-            listener.handle(event = modelMapper.mapToGameEventRestApiV1Model(event = it, userId = userId))
+    override fun streamGame(
+        userId: String,
+        gameId: String?,
+        session: Session,
+        listener: RestApiV1GameListener
+    ): Subscription =
+        try {
+            gameService.addGameListener(gameId.ensureGameIdIsNonNull()) {
+                listener.handle(event = modelMapper.mapToGameEventRestApiV1Model(event = it, userId = userId))
+            }
+        } catch (e: NoSuchGameFoundException) {
+            sessionService.removeGameId(session = session)
+            throw e
         }
 
     private fun String?.ensureGameIdIsNull() {
