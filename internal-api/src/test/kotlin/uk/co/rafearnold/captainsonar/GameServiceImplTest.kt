@@ -3,6 +3,7 @@ package uk.co.rafearnold.captainsonar
 import io.mockk.CapturingSlot
 import io.mockk.Ordering
 import io.mockk.clearAllMocks
+import io.mockk.clearMocks
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.justRun
@@ -110,6 +111,8 @@ class GameServiceImplTest {
             eventApiService.subscribeToGameEvents(any())
         }
         confirmVerified(eventApiService)
+
+        every { gameRepository.gameExists(gameId = any()) } returns true
 
         // Test that game events are sent to listeners.
         val gameId1 = "test_gameId1"
@@ -241,7 +244,7 @@ class GameServiceImplTest {
             .get(2, TimeUnit.SECONDS)
         assertEquals(expectedListener2Events3, listener2Events)
 
-        confirmVerified(gameIdGenerator, gameRepository)
+        confirmVerified(gameIdGenerator)
     }
 
     @Test
@@ -1793,11 +1796,14 @@ class GameServiceImplTest {
 
         gameService.register().get(2, TimeUnit.SECONDS)
 
+        every { gameRepository.gameExists(gameId = any()) } returns true
+
         val gameId = "test_gameId"
         val listener1Events: MutableSet<GameEvent> = ConcurrentHashMap.newKeySet()
         val listener1Subscription: Subscription = gameService.addGameListener(gameId) { listener1Events.add(it) }
         val listener2Events: MutableSet<GameEvent> = ConcurrentHashMap.newKeySet()
         val listener2Subscription: Subscription = gameService.addGameListener(gameId) { listener2Events.add(it) }
+        verify(exactly = 2) { gameRepository.gameExists(gameId = gameId) }
 
         val eventApiEvent1: GameEventEventApiV1Model =
             PlayerAddedEventEventApiV1Model(
@@ -1960,6 +1966,92 @@ class GameServiceImplTest {
         CompletableFuture.runAsync { while (listener2Events.size != expectedListener2Events3.size); }
             .get(2, TimeUnit.SECONDS)
         assertEquals(expectedListener2Events3, listener2Events)
+
+        confirmVerified(gameIdGenerator, gameRepository)
+    }
+
+    @Test
+    @Suppress("ControlFlowWithEmptyBody")
+    fun `when a listener is added for a game does not exist then an exception is thrown and no operation is performed`() {
+        val gameRepository: GameRepository = mockk()
+        val gameFactory = GameFactoryImpl()
+        val playerFactory = PlayerFactoryImpl()
+        val gameEventFactory = GameEventFactoryImpl()
+        val eventApiService: EventApiV1Service = mockk()
+        val sharedDataService: SharedDataService =
+            SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
+        val gameIdGenerator: GameIdGenerator = mockk()
+        val modelMapper =
+            ModelMapperImpl(
+                gameFactory = gameFactory,
+                gameEventFactory = gameEventFactory,
+                playerFactory = playerFactory,
+            )
+        val appConfig: ObservableMap<String, String> = mockk()
+        val gameService =
+            GameServiceImpl(
+                gameRepository = gameRepository,
+                gameFactory = gameFactory,
+                playerFactory = playerFactory,
+                gameEventFactory = gameEventFactory,
+                eventApiService = eventApiService,
+                sharedDataService = sharedDataService,
+                gameIdGenerator = gameIdGenerator,
+                modelMapper = modelMapper,
+                appConfig = appConfig,
+            )
+
+        val eventHandlerSlot: CapturingSlot<GameEventEventApiV1Handler> = slot()
+        justRun { eventApiService.subscribeToGameEvents(capture(eventHandlerSlot)) }
+
+        gameService.register().get(2, TimeUnit.SECONDS)
+
+        val gameId = "test_gameId"
+        every { gameRepository.gameExists(gameId = gameId) } returns false
+        val listener1Events: MutableSet<GameEvent> = ConcurrentHashMap.newKeySet()
+        val exception: NoSuchGameFoundException =
+            assertThrows { gameService.addGameListener(gameId = gameId) { listener1Events.add(it) } }
+        assertEquals(gameId, exception.gameId)
+        verify(exactly = 1) { gameRepository.gameExists(gameId = gameId) }
+
+        clearMocks(gameRepository)
+        every { gameRepository.gameExists(gameId = gameId) } returns true
+        val listener2Events: MutableSet<GameEvent> = ConcurrentHashMap.newKeySet()
+        gameService.addGameListener(gameId = gameId) { listener2Events.add(it) }
+        verify(exactly = 1) { gameRepository.gameExists(gameId = gameId) }
+
+        val eventApiEvent1: GameEventEventApiV1Model =
+            PlayerAddedEventEventApiV1Model(
+                gameId = gameId,
+                game = GameEventApiV1Model(
+                    hostId = "test_hostId",
+                    players = mapOf(
+                        "test_playerId1" to PlayerEventApiV1Model(name = "test_playerName1"),
+                        "test_playerId2" to PlayerEventApiV1Model(name = "test_playerName2"),
+                    ),
+                    started = false,
+                ),
+            )
+        eventHandlerSlot.captured.handle(event = eventApiEvent1)
+
+        val expectedListener2Events1: Set<GameEvent> =
+            setOf(
+                PlayerAddedEventImpl(
+                    game = GameImpl(
+                        id = gameId,
+                        hostId = "test_hostId",
+                        players = mapOf(
+                            "test_playerId1" to PlayerImpl(name = "test_playerName1"),
+                            "test_playerId2" to PlayerImpl(name = "test_playerName2"),
+                        ),
+                        started = false,
+                    ),
+                ),
+            )
+        CompletableFuture.runAsync { while (listener2Events.size != expectedListener2Events1.size); }
+            .get(2, TimeUnit.SECONDS)
+        assertEquals(expectedListener2Events1, listener2Events)
+        assertEquals(setOf<GameEvent>(), listener1Events)
 
         confirmVerified(gameIdGenerator, gameRepository)
     }
