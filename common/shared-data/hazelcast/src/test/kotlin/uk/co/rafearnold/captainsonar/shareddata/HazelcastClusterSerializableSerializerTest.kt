@@ -12,6 +12,7 @@ import io.vertx.ext.auth.VertxContextPRNG
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import uk.co.rafearnold.captainsonar.shareddata.hazelcast.HazelcastClusterSerializableSerializer
 
 class HazelcastClusterSerializableSerializerTest {
 

@@ -1,4 +1,6 @@
-package uk.co.rafearnold.captainsonar.shareddata
+package uk.co.rafearnold.captainsonar.shareddata.simple
+
+import uk.co.rafearnold.captainsonar.shareddata.TtlCollection
 
 abstract class AbstractTtlCollection : TtlCollection {
 

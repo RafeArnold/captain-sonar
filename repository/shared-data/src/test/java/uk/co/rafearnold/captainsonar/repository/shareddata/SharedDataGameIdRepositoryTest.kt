@@ -8,7 +8,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import uk.co.rafearnold.captainsonar.shareddata.SharedAtomicLong
 import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
-import uk.co.rafearnold.captainsonar.shareddata.SimpleClusterManager
+import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleClusterManager
 import uk.co.rafearnold.captainsonar.shareddata.getDistributedLong
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit

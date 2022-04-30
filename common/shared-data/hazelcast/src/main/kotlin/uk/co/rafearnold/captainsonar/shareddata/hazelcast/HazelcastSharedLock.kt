@@ -1,6 +1,7 @@
-package uk.co.rafearnold.captainsonar.shareddata
+package uk.co.rafearnold.captainsonar.shareddata.hazelcast
 
 import com.hazelcast.cp.lock.FencedLock
+import uk.co.rafearnold.captainsonar.shareddata.SharedLock
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 

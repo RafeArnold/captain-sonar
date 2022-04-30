@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleSharedAtomicLong
 import java.util.concurrent.atomic.AtomicLong
 
 class SimpleSharedAtomicLongTest {

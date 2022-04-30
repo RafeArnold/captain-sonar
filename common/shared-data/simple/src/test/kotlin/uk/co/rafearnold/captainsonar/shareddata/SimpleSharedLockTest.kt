@@ -10,6 +10,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleSharedLock
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 

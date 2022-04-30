@@ -1,6 +1,10 @@
-package uk.co.rafearnold.captainsonar.shareddata
+package uk.co.rafearnold.captainsonar.shareddata.hazelcast
 
 import com.hazelcast.core.HazelcastInstance
+import uk.co.rafearnold.captainsonar.shareddata.simple.AbstractSharedDataService
+import uk.co.rafearnold.captainsonar.shareddata.SharedAtomicLong
+import uk.co.rafearnold.captainsonar.shareddata.SharedLock
+import uk.co.rafearnold.captainsonar.shareddata.SharedMap
 import javax.inject.Inject
 
 class HazelcastSharedDataService @Inject constructor(

@@ -1,6 +1,7 @@
-package uk.co.rafearnold.captainsonar.shareddata
+package uk.co.rafearnold.captainsonar.shareddata.hazelcast
 
 import com.hazelcast.cp.IAtomicLong
+import uk.co.rafearnold.captainsonar.shareddata.SharedAtomicLong
 
 class HazelcastSharedAtomicLong(private val hazelcastLong: IAtomicLong) : SharedAtomicLong {
 

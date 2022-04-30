@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.shareddata
+package uk.co.rafearnold.captainsonar.shareddata.hazelcast
 
 import com.hazelcast.nio.ObjectDataInput
 import com.hazelcast.nio.ObjectDataOutput

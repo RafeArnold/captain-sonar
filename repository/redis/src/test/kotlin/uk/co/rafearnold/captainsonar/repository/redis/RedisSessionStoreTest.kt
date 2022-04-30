@@ -26,7 +26,7 @@ import uk.co.rafearnold.captainsonar.common.toCompletableFuture
 import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
 import uk.co.rafearnold.captainsonar.repository.session.SessionCodecImpl
 import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
-import uk.co.rafearnold.captainsonar.shareddata.SimpleClusterManager
+import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleClusterManager
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInput

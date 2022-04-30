@@ -21,7 +21,7 @@ import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
 import uk.co.rafearnold.captainsonar.repository.session.SessionCodecImpl
 import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
 import uk.co.rafearnold.captainsonar.shareddata.SharedMap
-import uk.co.rafearnold.captainsonar.shareddata.SimpleClusterManager
+import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleClusterManager
 import uk.co.rafearnold.captainsonar.shareddata.getDistributedMap
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream

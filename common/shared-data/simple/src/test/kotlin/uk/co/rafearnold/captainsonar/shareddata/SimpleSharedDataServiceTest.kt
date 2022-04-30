@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleClusterManager
 
 class SimpleSharedDataServiceTest {
 

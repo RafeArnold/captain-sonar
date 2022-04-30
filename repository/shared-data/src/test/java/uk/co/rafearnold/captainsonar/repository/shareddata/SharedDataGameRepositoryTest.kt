@@ -19,7 +19,7 @@ import uk.co.rafearnold.captainsonar.repository.StoredPlayer
 import uk.co.rafearnold.captainsonar.repository.UpdateStoredGameOperation
 import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
 import uk.co.rafearnold.captainsonar.shareddata.SharedMap
-import uk.co.rafearnold.captainsonar.shareddata.SimpleClusterManager
+import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleClusterManager
 import uk.co.rafearnold.captainsonar.shareddata.getDistributedMap
 import java.util.concurrent.TimeUnit
 

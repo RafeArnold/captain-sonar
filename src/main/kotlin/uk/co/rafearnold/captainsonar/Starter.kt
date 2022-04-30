@@ -22,7 +22,7 @@ import uk.co.rafearnold.captainsonar.guice.MainModule
 import uk.co.rafearnold.captainsonar.repository.redis.RedisRepositoryModule
 import uk.co.rafearnold.captainsonar.repository.shareddata.SharedDataRepositoryModule
 import uk.co.rafearnold.captainsonar.restapiv1.RestApiV1Module
-import uk.co.rafearnold.captainsonar.shareddata.HazelcastSharedDataModule
+import uk.co.rafearnold.captainsonar.shareddata.hazelcast.HazelcastSharedDataModule
 
 class Starter : AbstractVerticle() {
 

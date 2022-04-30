@@ -1,7 +1,8 @@
-package uk.co.rafearnold.captainsonar.shareddata
+package uk.co.rafearnold.captainsonar.shareddata.hazelcast
 
 import com.google.inject.AbstractModule
 import com.google.inject.Scopes
+import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
 
 class HazelcastSharedDataModule : AbstractModule() {
 

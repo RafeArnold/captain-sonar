@@ -1,5 +1,6 @@
-package uk.co.rafearnold.captainsonar.shareddata
+package uk.co.rafearnold.captainsonar.shareddata.simple
 
+import uk.co.rafearnold.captainsonar.shareddata.SharedAtomicLong
 import java.util.concurrent.atomic.AtomicLong
 
 /**
