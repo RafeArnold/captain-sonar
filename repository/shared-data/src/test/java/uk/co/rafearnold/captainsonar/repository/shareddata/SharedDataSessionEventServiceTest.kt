@@ -10,8 +10,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import uk.co.rafearnold.captainsonar.common.Subscription
-import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
-import uk.co.rafearnold.captainsonar.repository.session.SessionCodecImpl
 import uk.co.rafearnold.captainsonar.repository.session.SessionEvent
 import uk.co.rafearnold.captainsonar.repository.session.SessionExpiredEvent
 import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
@@ -40,9 +38,9 @@ class SharedDataSessionEventServiceTest {
 
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val dataMap: SharedMap<String, ByteArray> = sharedDataService.getDistributedMap("test_dataMapName")
-        val sessionCodec: SessionCodec = SessionCodecImpl()
-        val eventService = SharedDataSessionEventService(dataMap = dataMap, sessionCodec = sessionCodec)
+        val dataMap: SharedMap<String, SharedDataSessionImpl> =
+            sharedDataService.getDistributedMap(name = "test_dataMapName")
+        val eventService = SharedDataSessionEventService(dataMap = dataMap)
 
         val timeout: Long = 10
 
@@ -51,7 +49,7 @@ class SharedDataSessionEventServiceTest {
 
         val session1 = SharedDataSessionImpl(VertxContextPRNG.current(vertx), timeout, 25)
         session1.data()["test_dataKey1"] = "test_dataValue1"
-        dataMap.put(session1.id(), sessionCodec.serialize(session = session1), timeout, TimeUnit.MILLISECONDS)
+        dataMap.put(session1.id(), session1, timeout, TimeUnit.MILLISECONDS)
 
         Thread.sleep(timeout)
 
@@ -70,7 +68,7 @@ class SharedDataSessionEventServiceTest {
         session2.data()["test_dataKey2"] = "test_dataValue2"
         session2.data()["test_dataKey3"] = "test_dataValue3"
         session2.data()["test_dataKey4"] = "test_dataValue4"
-        dataMap.put(session2.id(), sessionCodec.serialize(session = session2), timeout, TimeUnit.MILLISECONDS)
+        dataMap.put(session2.id(), session2, timeout, TimeUnit.MILLISECONDS)
 
         Thread.sleep(timeout)
 
@@ -95,7 +93,7 @@ class SharedDataSessionEventServiceTest {
         val session3 = SharedDataSessionImpl(VertxContextPRNG.current(vertx), timeout, 73)
         session3.data()["test_dataKey5"] = "test_dataValue5"
         session3.data()["test_dataKey6"] = "test_dataValue6"
-        dataMap.put(session3.id(), sessionCodec.serialize(session = session3), timeout, TimeUnit.MILLISECONDS)
+        dataMap.put(session3.id(), session3, timeout, TimeUnit.MILLISECONDS)
 
         Thread.sleep(timeout)
 
@@ -111,7 +109,7 @@ class SharedDataSessionEventServiceTest {
         subscription2.cancel()
 
         val session4 = SharedDataSessionImpl(VertxContextPRNG.current(vertx), timeout, 53)
-        dataMap.put(session4.id(), sessionCodec.serialize(session = session4), timeout, TimeUnit.MILLISECONDS)
+        dataMap.put(session4.id(), session4, timeout, TimeUnit.MILLISECONDS)
 
         Thread.sleep(timeout)
 

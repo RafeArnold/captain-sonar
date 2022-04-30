@@ -4,6 +4,8 @@ import io.mockk.clearAllMocks
 import io.mockk.mockk
 import io.mockk.unmockkAll
 import io.vertx.core.Vertx
+import io.vertx.core.buffer.Buffer
+import io.vertx.ext.auth.VertxContextPRNG
 import io.vertx.ext.web.Session
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl
 import org.junit.jupiter.api.AfterEach
@@ -15,19 +17,11 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.junit.jupiter.api.fail
 import uk.co.rafearnold.captainsonar.common.toCompletableFuture
-import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
-import uk.co.rafearnold.captainsonar.repository.session.SessionCodecImpl
 import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
 import uk.co.rafearnold.captainsonar.shareddata.SharedMap
-import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleClusterManager
 import uk.co.rafearnold.captainsonar.shareddata.getDistributedMap
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.DataInput
-import java.io.DataInputStream
-import java.io.DataOutputStream
+import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleClusterManager
 import java.util.*
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
@@ -46,7 +40,7 @@ class SharedDataSessionStoreTest {
     @Test
     fun `retry timeout is 5 seconds`() {
         val vertx: Vertx = Vertx.vertx()
-        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = mockk(), sessionCodec = mockk())
+        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = mockk())
         assertEquals(5000, sessionStore.retryTimeout())
         vertx.close()
     }
@@ -54,7 +48,7 @@ class SharedDataSessionStoreTest {
     @Test
     fun `a session can be created`() {
         val vertx: Vertx = Vertx.vertx()
-        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = mockk(), sessionCodec = mockk())
+        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = mockk())
         val timeout: Long = 10000
         val length = 17
         val session: Session = sessionStore.createSession(timeout, length)
@@ -69,9 +63,9 @@ class SharedDataSessionStoreTest {
         val vertx: Vertx = Vertx.vertx()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val sessionMap: SharedMap<String, ByteArray> = sharedDataService.getDistributedMap("test_dataMapName")
-        val sessionCodec: SessionCodec = SessionCodecImpl()
-        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap, sessionCodec = sessionCodec)
+        val sessionMap: SharedMap<String, SharedDataSessionImpl> =
+            sharedDataService.getDistributedMap("test_dataMapName")
+        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap)
 
         val timeout: Long = 10000
         val length = 17
@@ -81,17 +75,13 @@ class SharedDataSessionStoreTest {
 
         assertEquals(setOf(session.id()), sessionMap.keys)
 
-        val result1: ByteArray? = sessionMap[session.id()]
-        val result1Stream = DataInputStream(ByteArrayInputStream(result1))
-        assertEquals(session.id().length, result1Stream.readInt())
-        assertEquals(session.id(), result1Stream.readUtf(session.id().length))
-        assertEquals(timeout, result1Stream.readLong())
-        assertEquals(session.lastAccessed(), result1Stream.readLong())
-        assertEquals(session.version(), result1Stream.readInt())
+        val result1: SharedDataSessionImpl? = sessionMap[session.id()]
+        assertEquals(session.id(), result1?.id())
+        assertEquals(timeout, result1?.timeout())
+        assertEquals(session.lastAccessed(), result1?.lastAccessed())
+        assertEquals(session.version(), result1?.version())
         // No data.
-        assertEquals(0, result1Stream.readInt())
-        // End of file.
-        assertEquals(-1, result1Stream.read())
+        assertEquals(0, result1?.data()?.size)
 
         // Insert some data into the session and update other values, then reinsert into the db.
         val dataKey1 = "test_dataKey1"
@@ -107,36 +97,12 @@ class SharedDataSessionStoreTest {
 
         assertEquals(setOf(session.id()), sessionMap.keys)
 
-        val result2: ByteArray? = sessionMap[session.id()]
-        val result2Stream = DataInputStream(ByteArrayInputStream(result2))
-        assertEquals(session.id().length, result2Stream.readInt())
-        assertEquals(session.id(), result2Stream.readUtf(session.id().length))
-        assertEquals(timeout, result2Stream.readLong())
-        assertEquals(session.lastAccessed(), result2Stream.readLong())
-        assertEquals(session.version(), result2Stream.readInt())
-        assertEquals(session.data().size, result2Stream.readInt())
-        for ((key: String, value: Any) in session.data()) {
-            assertEquals(key.length, result2Stream.readInt())
-            assertEquals(key, result2Stream.readUtf(key.length))
-            when (value) {
-                dataValue1 -> {
-                    assertEquals(9, result2Stream.readByte())
-                    assertEquals(dataValue1.length, result2Stream.readInt())
-                    assertEquals(dataValue1, result2Stream.readUtf(dataValue1.length))
-                }
-                dataValue2 -> {
-                    assertEquals(2, result2Stream.readByte())
-                    assertEquals(2353, result2Stream.readInt())
-                }
-                dataValue3 -> {
-                    assertEquals(8, result2Stream.readByte())
-                    assertEquals(0, result2Stream.readByte())
-                }
-                else -> fail("Unknown key: $key")
-            }
-        }
-        // End of file.
-        assertEquals(-1, result2Stream.read())
+        val result2: SharedDataSessionImpl? = sessionMap[session.id()]
+        assertEquals(session.id(), result2?.id())
+        assertEquals(timeout, result2?.timeout())
+        assertEquals(session.lastAccessed(), result2?.lastAccessed())
+        assertEquals(session.version(), result2?.version())
+        assertEquals(session.data(), result2?.data())
 
         vertx.close()
     }
@@ -146,13 +112,15 @@ class SharedDataSessionStoreTest {
         val vertx: Vertx = Vertx.vertx()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val sessionMap: SharedMap<String, ByteArray> = sharedDataService.getDistributedMap("test_dataMapName")
-        val sessionCodec: SessionCodec = SessionCodecImpl()
-        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap, sessionCodec = sessionCodec)
+        val sessionMap: SharedMap<String, SharedDataSessionImpl> =
+            sharedDataService.getDistributedMap(name = "test_dataMapName")
+        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap)
 
         val timeout: Long = 10000
         val length = 17
         val session: SharedDataSessionImpl = sessionStore.createSession(timeout, length) as SharedDataSessionImpl
+        val sessionCopy: SharedDataSessionImpl =
+            SharedDataSessionImpl().apply { readFromBuffer(0, Buffer.buffer().apply { session.writeToBuffer(this) }) }
 
         sessionStore.put(session).toCompletableFuture().get(2, TimeUnit.SECONDS)
 
@@ -162,7 +130,7 @@ class SharedDataSessionStoreTest {
         session.incrementVersion()
         val executionException: ExecutionException =
             assertThrows {
-                sessionStore.put(session).toCompletableFuture().get(2, TimeUnit.SECONDS)
+                sessionStore.put(sessionCopy).toCompletableFuture().get(2, TimeUnit.SECONDS)
             }
         assertEquals("Version mismatch", executionException.cause?.message)
 
@@ -174,9 +142,9 @@ class SharedDataSessionStoreTest {
         val vertx: Vertx = Vertx.vertx()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val sessionMap: SharedMap<String, ByteArray> = sharedDataService.getDistributedMap("test_dataMapName")
-        val sessionCodec: SessionCodec = SessionCodecImpl()
-        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap, sessionCodec = sessionCodec)
+        val sessionMap: SharedMap<String, SharedDataSessionImpl> =
+            sharedDataService.getDistributedMap(name = "test_dataMapName")
+        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap)
 
         val timeout: Long = 10000
         val length = 17
@@ -190,14 +158,12 @@ class SharedDataSessionStoreTest {
         session.put("test_key", "test_value")
         sessionStore.put(session).toCompletableFuture().get(2, TimeUnit.SECONDS)
 
-        val result: ByteArray? = sessionMap[session.id()]
-        val resultStream = DataInputStream(ByteArrayInputStream(result))
-        assertEquals(session.id().length, resultStream.readInt())
-        assertEquals(session.id(), resultStream.readUtf(session.id().length))
-        assertEquals(timeout, resultStream.readLong())
-        assertEquals(session.lastAccessed(), resultStream.readLong())
+        val result: SharedDataSessionImpl? = sessionMap[session.id()]
+        assertEquals(session.id(), result?.id())
+        assertEquals(timeout, result?.timeout())
+        assertEquals(session.lastAccessed(), result?.lastAccessed())
         // Verify the version has incremented.
-        assertEquals(originalVersion + 1, resultStream.readInt())
+        assertEquals(originalVersion + 1, result?.version())
 
         vertx.close()
     }
@@ -207,9 +173,9 @@ class SharedDataSessionStoreTest {
         val vertx: Vertx = Vertx.vertx()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val sessionMap: SharedMap<String, ByteArray> = sharedDataService.getDistributedMap("test_dataMapName")
-        val sessionCodec: SessionCodec = SessionCodecImpl()
-        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap, sessionCodec = sessionCodec)
+        val sessionMap: SharedMap<String, SharedDataSessionImpl> =
+            sharedDataService.getDistributedMap(name = "test_dataMapName")
+        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap)
 
         val timeout: Long = 50
         val length = 17
@@ -233,36 +199,25 @@ class SharedDataSessionStoreTest {
         val vertx: Vertx = Vertx.vertx()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val sessionMap: SharedMap<String, ByteArray> = sharedDataService.getDistributedMap("test_dataMapName")
-        val sessionCodec: SessionCodec = SessionCodecImpl()
-        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap, sessionCodec = sessionCodec)
+        val sessionMap: SharedMap<String, SharedDataSessionImpl> =
+            sharedDataService.getDistributedMap(name = "test_dataMapName")
+        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap)
 
         // Session with no data.
         run {
             val length = 17
-            val id: String = Base64.getEncoder().encodeToString(Random.nextBytes(length))
             val timeout: Long = 10000
-            val lastAccessed: Long = System.currentTimeMillis()
-            val version = 3456
+            val session = SharedDataSessionImpl(VertxContextPRNG.current(vertx), timeout, length)
 
-            val serializedSessionOutputStream = ByteArrayOutputStream()
-            val dataOutputStream = DataOutputStream(serializedSessionOutputStream)
-            dataOutputStream.writeInt(id.length)
-            dataOutputStream.write(id.toByteArray(Charsets.UTF_8))
-            dataOutputStream.writeLong(timeout)
-            dataOutputStream.writeLong(lastAccessed)
-            dataOutputStream.writeInt(version)
-            dataOutputStream.writeInt(0)
+            sessionMap[session.id()] = session
 
-            sessionMap[id] = serializedSessionOutputStream.toByteArray()
-
-            val result: Session? = sessionStore.get(id).toCompletableFuture().get(2, TimeUnit.SECONDS)
+            val result: Session? = sessionStore.get(session.id()).toCompletableFuture().get(2, TimeUnit.SECONDS)
             assertTrue(result is SharedDataSessionImpl)
             result as SharedDataSessionImpl
-            assertEquals(id, result.id())
+            assertEquals(session.id(), result.id())
             assertEquals(timeout, result.timeout())
-            assertEquals(lastAccessed, result.lastAccessed())
-            assertEquals(version, result.version())
+            assertEquals(session.lastAccessed(), result.lastAccessed())
+            assertEquals(session.version(), result.version())
             assertTrue(result.isEmpty)
             assertEquals(mapOf<String, Any>(), result.data())
         }
@@ -270,48 +225,27 @@ class SharedDataSessionStoreTest {
         // Session with data.
         run {
             val length = 345
-            val id: String = Base64.getEncoder().encodeToString(Random.nextBytes(length))
             val timeout: Long = 543665
-            val lastAccessed: Long = System.currentTimeMillis()
-            val version = 17
             val dataKey1 = "test_dataKey1"
             val dataValue1 = 2353
             val dataKey2 = "test_dataKey2"
             val dataValue2 = false
             val dataKey3 = "test_dataKey3"
             val dataValue3 = "test_dataValue1"
+            val session = SharedDataSessionImpl(VertxContextPRNG.current(vertx), timeout, length)
+            session.data()[dataKey1] = dataValue1
+            session.data()[dataKey2] = dataValue2
+            session.data()[dataKey3] = dataValue3
 
-            val serializedSessionOutputStream = ByteArrayOutputStream()
-            val dataOutputStream = DataOutputStream(serializedSessionOutputStream)
-            dataOutputStream.writeInt(id.length)
-            dataOutputStream.write(id.toByteArray(Charsets.UTF_8))
-            dataOutputStream.writeLong(timeout)
-            dataOutputStream.writeLong(lastAccessed)
-            dataOutputStream.writeInt(version)
-            dataOutputStream.writeInt(3)
-            dataOutputStream.writeInt(dataKey1.length)
-            dataOutputStream.write(dataKey1.toByteArray(Charsets.UTF_8))
-            dataOutputStream.write(2)
-            dataOutputStream.writeInt(dataValue1)
-            dataOutputStream.writeInt(dataKey2.length)
-            dataOutputStream.write(dataKey2.toByteArray(Charsets.UTF_8))
-            dataOutputStream.write(8)
-            dataOutputStream.writeBoolean(dataValue2)
-            dataOutputStream.writeInt(dataKey3.length)
-            dataOutputStream.write(dataKey3.toByteArray(Charsets.UTF_8))
-            dataOutputStream.write(9)
-            dataOutputStream.writeInt(dataValue3.length)
-            dataOutputStream.write(dataValue3.toByteArray(Charsets.UTF_8))
+            sessionMap[session.id()] = session
 
-            sessionMap[id] = serializedSessionOutputStream.toByteArray()
-
-            val result: Session? = sessionStore.get(id).toCompletableFuture().get(2, TimeUnit.SECONDS)
+            val result: Session? = sessionStore.get(session.id()).toCompletableFuture().get(2, TimeUnit.SECONDS)
             assertTrue(result is SharedDataSessionImpl)
             result as SharedDataSessionImpl
-            assertEquals(id, result.id())
+            assertEquals(session.id(), result.id())
             assertEquals(timeout, result.timeout())
-            assertEquals(lastAccessed, result.lastAccessed())
-            assertEquals(version, result.version())
+            assertEquals(session.lastAccessed(), result.lastAccessed())
+            assertEquals(session.version(), result.version())
             assertFalse(result.isEmpty)
             assertEquals(mapOf(dataKey1 to dataValue1, dataKey2 to dataValue2, dataKey3 to dataValue3), result.data())
         }
@@ -320,75 +254,49 @@ class SharedDataSessionStoreTest {
     }
 
     @Test
-    fun `when a session's shadow key has expired then null is returned when the session is requested`() {
+    fun `when a session has expired then null is returned when the session is requested`() {
         val vertx: Vertx = Vertx.vertx()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val sessionMap: SharedMap<String, ByteArray> = sharedDataService.getDistributedMap("test_dataMapName")
-        val sessionCodec: SessionCodec = SessionCodecImpl()
-        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap, sessionCodec = sessionCodec)
+        val sessionMap: SharedMap<String, SharedDataSessionImpl> =
+            sharedDataService.getDistributedMap(name = "test_dataMapName")
+        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap)
 
         // Session with no data.
         run {
             val length = 17
-            val id: String = Base64.getEncoder().encodeToString(Random.nextBytes(length))
             val timeout: Long = 10000
-            val lastAccessed: Long = System.currentTimeMillis()
-            val version = 3456
+            val session = SharedDataSessionImpl(VertxContextPRNG.current(vertx), timeout, length)
 
-            val serializedSessionOutputStream = ByteArrayOutputStream()
-            val dataOutputStream = DataOutputStream(serializedSessionOutputStream)
-            dataOutputStream.writeInt(id.length)
-            dataOutputStream.write(id.toByteArray(Charsets.UTF_8))
-            dataOutputStream.writeLong(timeout)
-            dataOutputStream.writeLong(lastAccessed)
-            dataOutputStream.writeInt(version)
-            dataOutputStream.writeInt(0)
+            val ttlMs: Long = 10
+            sessionMap.put(key = session.id(), value = session, ttl = ttlMs, ttlUnit = TimeUnit.MILLISECONDS)
 
-            sessionMap["uk.co.rafearnold.captainsonar.session.$id"] = serializedSessionOutputStream.toByteArray()
+            Thread.sleep(2 * ttlMs)
 
-            assertNull(sessionStore.get(id).toCompletableFuture().get(2, TimeUnit.SECONDS))
+            assertNull(sessionStore.get(session.id()).toCompletableFuture().get(2, TimeUnit.SECONDS))
         }
 
         // Session with data.
         run {
             val length = 345
-            val id: String = Base64.getEncoder().encodeToString(Random.nextBytes(length))
             val timeout: Long = 543665
-            val lastAccessed: Long = System.currentTimeMillis()
-            val version = 17
             val dataKey1 = "test_dataKey1"
             val dataValue1 = 2353
             val dataKey2 = "test_dataKey2"
             val dataValue2 = false
             val dataKey3 = "test_dataKey3"
             val dataValue3 = "test_dataValue1"
+            val session = SharedDataSessionImpl(VertxContextPRNG.current(vertx), timeout, length)
+            session.data()[dataKey1] = dataValue1
+            session.data()[dataKey2] = dataValue2
+            session.data()[dataKey3] = dataValue3
 
-            val serializedSessionOutputStream = ByteArrayOutputStream()
-            val dataOutputStream = DataOutputStream(serializedSessionOutputStream)
-            dataOutputStream.writeInt(id.length)
-            dataOutputStream.write(id.toByteArray(Charsets.UTF_8))
-            dataOutputStream.writeLong(timeout)
-            dataOutputStream.writeLong(lastAccessed)
-            dataOutputStream.writeInt(version)
-            dataOutputStream.writeInt(3)
-            dataOutputStream.writeInt(dataKey1.length)
-            dataOutputStream.write(dataKey1.toByteArray(Charsets.UTF_8))
-            dataOutputStream.write(2)
-            dataOutputStream.writeInt(dataValue1)
-            dataOutputStream.writeInt(dataKey2.length)
-            dataOutputStream.write(dataKey2.toByteArray(Charsets.UTF_8))
-            dataOutputStream.write(8)
-            dataOutputStream.writeBoolean(dataValue2)
-            dataOutputStream.writeInt(dataKey3.length)
-            dataOutputStream.write(dataKey3.toByteArray(Charsets.UTF_8))
-            dataOutputStream.write(9)
-            dataOutputStream.writeInt(dataValue3.length)
-            dataOutputStream.write(dataValue3.toByteArray(Charsets.UTF_8))
+            val ttlMs: Long = 10
+            sessionMap.put(key = session.id(), value = session, ttl = ttlMs, ttlUnit = TimeUnit.MILLISECONDS)
 
-            sessionMap["uk.co.rafearnold.captainsonar.session.$id"] = serializedSessionOutputStream.toByteArray()
+            Thread.sleep(2 * ttlMs)
 
-            assertNull(sessionStore.get(id).toCompletableFuture().get(2, TimeUnit.SECONDS))
+            assertNull(sessionStore.get(session.id()).toCompletableFuture().get(2, TimeUnit.SECONDS))
         }
 
         vertx.close()
@@ -399,32 +307,22 @@ class SharedDataSessionStoreTest {
         val vertx: Vertx = Vertx.vertx()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val sessionMap: SharedMap<String, ByteArray> = sharedDataService.getDistributedMap("test_dataMapName")
-        val sessionCodec: SessionCodec = SessionCodecImpl()
-        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap, sessionCodec = sessionCodec)
+        val sessionMap: SharedMap<String, SharedDataSessionImpl> =
+            sharedDataService.getDistributedMap(name = "test_dataMapName")
+        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap)
 
         val length = 17
-        val id: String = Base64.getEncoder().encodeToString(Random.nextBytes(length))
         val timeout: Long = 10000
-        val lastAccessed: Long = System.currentTimeMillis()
-        val version = 675
+        val session = SharedDataSessionImpl(VertxContextPRNG.current(vertx), timeout, length)
+        val originalId: String = session.id()
 
-        val serializedSessionOutputStream = ByteArrayOutputStream()
-        val dataOutputStream = DataOutputStream(serializedSessionOutputStream)
-        dataOutputStream.writeInt(id.length)
-        dataOutputStream.write(id.toByteArray(Charsets.UTF_8))
-        dataOutputStream.writeLong(timeout)
-        dataOutputStream.writeLong(lastAccessed)
-        dataOutputStream.writeInt(version)
-        dataOutputStream.writeInt(0)
+        sessionMap[session.id()] = session
 
-        sessionMap["uk.co.rafearnold.captainsonar.session.$id"] = serializedSessionOutputStream.toByteArray()
-
-        val result: Session? = sessionStore.get(id).toCompletableFuture().get(2, TimeUnit.SECONDS)
+        val result: Session? = sessionStore.get(session.id()).toCompletableFuture().get(2, TimeUnit.SECONDS)
 
         // Regenerate ID and verify it's different to the original.
         result?.regenerateId()
-        assertNotEquals(id, result?.id())
+        assertNotEquals(originalId, result?.id())
 
         vertx.close()
     }
@@ -434,72 +332,28 @@ class SharedDataSessionStoreTest {
         val vertx: Vertx = Vertx.vertx()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val sessionMap: SharedMap<String, ByteArray> = sharedDataService.getDistributedMap("test_dataMapName")
-        val sessionCodec: SessionCodec = SessionCodecImpl()
-        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap, sessionCodec = sessionCodec)
+        val sessionMap: SharedMap<String, SharedDataSessionImpl> =
+            sharedDataService.getDistributedMap(name = "test_dataMapName")
+        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap)
 
-        val id1: String = Base64.getEncoder().encodeToString(Random.nextBytes(17))
-        run {
-            val timeout: Long = 10000
-            val lastAccessed: Long = System.currentTimeMillis()
-            val version = 675
+        val session1 = SharedDataSessionImpl(VertxContextPRNG.current(vertx), 10000, 17)
 
-            val serializedSessionOutputStream = ByteArrayOutputStream()
-            val dataOutputStream = DataOutputStream(serializedSessionOutputStream)
-            dataOutputStream.writeInt(id1.length)
-            dataOutputStream.write(id1.toByteArray(Charsets.UTF_8))
-            dataOutputStream.writeLong(timeout)
-            dataOutputStream.writeLong(lastAccessed)
-            dataOutputStream.writeInt(version)
-            dataOutputStream.writeInt(0)
+        sessionMap[session1.id()] = session1
 
-            sessionMap[id1] = serializedSessionOutputStream.toByteArray()
-        }
+        val session2 = SharedDataSessionImpl(VertxContextPRNG.current(vertx), 543665, 32)
+        session2.data()["test_dataKey1"] = 2353
+        session2.data()["test_dataKey2"] = false
+        session2.data()["test_dataKey3"] = "test_dataValue3"
 
-        val id2: String = Base64.getEncoder().encodeToString(Random.nextBytes(3464))
-        run {
-            val timeout: Long = 543665
-            val lastAccessed: Long = System.currentTimeMillis()
-            val version = 17
-            val dataKey1 = "test_dataKey1"
-            val dataValue1 = 2353
-            val dataKey2 = "test_dataKey2"
-            val dataValue2 = false
-            val dataKey3 = "test_dataKey3"
-            val dataValue3 = "test_dataValue1"
+        sessionMap[session2.id()] = session2
 
-            val serializedSessionOutputStream = ByteArrayOutputStream()
-            val dataOutputStream = DataOutputStream(serializedSessionOutputStream)
-            dataOutputStream.writeInt(id2.length)
-            dataOutputStream.write(id2.toByteArray(Charsets.UTF_8))
-            dataOutputStream.writeLong(timeout)
-            dataOutputStream.writeLong(lastAccessed)
-            dataOutputStream.writeInt(version)
-            dataOutputStream.writeInt(3)
-            dataOutputStream.writeInt(dataKey1.length)
-            dataOutputStream.write(dataKey1.toByteArray(Charsets.UTF_8))
-            dataOutputStream.write(2)
-            dataOutputStream.writeInt(dataValue1)
-            dataOutputStream.writeInt(dataKey2.length)
-            dataOutputStream.write(dataKey2.toByteArray(Charsets.UTF_8))
-            dataOutputStream.write(8)
-            dataOutputStream.writeBoolean(dataValue2)
-            dataOutputStream.writeInt(dataKey3.length)
-            dataOutputStream.write(dataKey3.toByteArray(Charsets.UTF_8))
-            dataOutputStream.write(9)
-            dataOutputStream.writeInt(dataValue3.length)
-            dataOutputStream.write(dataValue3.toByteArray(Charsets.UTF_8))
+        assertEquals(setOf(session1.id(), session2.id()), sessionMap.keys)
 
-            sessionMap[id2] = serializedSessionOutputStream.toByteArray()
-        }
+        sessionStore.delete(session1.id()).toCompletableFuture().get(2, TimeUnit.SECONDS)
 
-        assertEquals(setOf(id1, id2), sessionMap.keys)
+        assertEquals(setOf(session2.id()), sessionMap.keys)
 
-        sessionStore.delete(id1).toCompletableFuture().get(2, TimeUnit.SECONDS)
-
-        assertEquals(setOf(id2), sessionMap.keys)
-
-        sessionStore.delete(id2).toCompletableFuture().get(2, TimeUnit.SECONDS)
+        sessionStore.delete(session2.id()).toCompletableFuture().get(2, TimeUnit.SECONDS)
 
         assertEquals(setOf<String>(), sessionMap.keys)
 
@@ -511,15 +365,15 @@ class SharedDataSessionStoreTest {
         val vertx: Vertx = Vertx.vertx()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val sessionMap: SharedMap<String, ByteArray> = sharedDataService.getDistributedMap("test_dataMapName")
-        val sessionCodec: SessionCodec = SessionCodecImpl()
-        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap, sessionCodec = sessionCodec)
+        val sessionMap: SharedMap<String, SharedDataSessionImpl> =
+            sharedDataService.getDistributedMap(name = "test_dataMapName")
+        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap)
 
         val session1Id = Base64.getEncoder().encodeToString(Random.nextBytes(17))
         val session2Id = Base64.getEncoder().encodeToString(Random.nextBytes(3464))
 
-        sessionMap[session1Id] = byteArrayOf()
-        sessionMap[session2Id] = byteArrayOf()
+        sessionMap[session1Id] = SharedDataSessionImpl(VertxContextPRNG.current(vertx))
+        sessionMap[session2Id] = SharedDataSessionImpl(VertxContextPRNG.current(vertx))
 
         assertEquals(setOf(session1Id, session2Id), sessionMap.keys)
 
@@ -535,9 +389,9 @@ class SharedDataSessionStoreTest {
         val vertx: Vertx = Vertx.vertx()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val sessionMap: SharedMap<String, ByteArray> = sharedDataService.getDistributedMap("test_dataMapName")
-        val sessionCodec: SessionCodec = SessionCodecImpl()
-        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap, sessionCodec = sessionCodec)
+        val sessionMap: SharedMap<String, SharedDataSessionImpl> =
+            sharedDataService.getDistributedMap(name = "test_dataMapName")
+        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap)
 
         assertEquals(setOf<String>(), sessionMap.keys)
 
@@ -553,23 +407,20 @@ class SharedDataSessionStoreTest {
         val vertx: Vertx = Vertx.vertx()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val sessionMap: SharedMap<String, ByteArray> = sharedDataService.getDistributedMap("test_dataMapName")
-        val sessionCodec: SessionCodec = SessionCodecImpl()
-        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap, sessionCodec = sessionCodec)
+        val sessionMap: SharedMap<String, SharedDataSessionImpl> =
+            sharedDataService.getDistributedMap(name = "test_dataMapName")
+        val sessionStore = SharedDataSessionStore(vertx = vertx, sessionMap = sessionMap)
 
         val session1Id = Base64.getEncoder().encodeToString(Random.nextBytes(17))
         val session2Id = Base64.getEncoder().encodeToString(Random.nextBytes(3464))
         val session3Id = Base64.getEncoder().encodeToString(Random.nextBytes(45))
 
-        sessionMap[session1Id] = byteArrayOf()
-        sessionMap[session2Id] = byteArrayOf()
-        sessionMap[session3Id] = byteArrayOf()
+        sessionMap[session1Id] = SharedDataSessionImpl(VertxContextPRNG.current(vertx))
+        sessionMap[session2Id] = SharedDataSessionImpl(VertxContextPRNG.current(vertx))
+        sessionMap[session3Id] = SharedDataSessionImpl(VertxContextPRNG.current(vertx))
 
         assertEquals(3, sessionStore.size().toCompletableFuture().get(2, TimeUnit.SECONDS))
 
         vertx.close()
     }
-
-    private fun DataInput.readUtf(length: Int): String =
-        ByteArray(length).apply { this@readUtf.readFully(this) }.toString(Charsets.UTF_8)
 }
