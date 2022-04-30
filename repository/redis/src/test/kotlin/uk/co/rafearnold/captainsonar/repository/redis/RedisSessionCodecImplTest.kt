@@ -1,4 +1,4 @@
-package uk.co.rafearnold.captainsonar.repository.session
+package uk.co.rafearnold.captainsonar.repository.redis
 
 import io.vertx.core.Vertx
 import io.vertx.ext.auth.VertxContextPRNG
@@ -16,13 +16,13 @@ import java.io.DataOutputStream
 import java.util.*
 import kotlin.random.Random
 
-class SessionCodecImplTest {
+class RedisSessionCodecImplTest {
 
     @Test
     fun `a session can be serialized`() {
-        val vertx: Vertx = Vertx.vertx();
+        val vertx: Vertx = Vertx.vertx()
 
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
 
         val timeout: Long = 10000
         val length = 17
@@ -87,7 +87,7 @@ class SessionCodecImplTest {
 
     @Test
     fun `a session can be deserialized`() {
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
 
         // Session with no data.
         run {
