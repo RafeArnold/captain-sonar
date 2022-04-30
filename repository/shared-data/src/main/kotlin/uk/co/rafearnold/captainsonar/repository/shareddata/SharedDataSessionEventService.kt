@@ -1,9 +1,9 @@
 package uk.co.rafearnold.captainsonar.repository.shareddata
 
+import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import uk.co.rafearnold.captainsonar.common.Subscription
-import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
 import uk.co.rafearnold.captainsonar.repository.session.SessionEvent
 import uk.co.rafearnold.captainsonar.repository.session.SessionEventService
 import uk.co.rafearnold.captainsonar.repository.session.SessionExpiredEvent
@@ -18,8 +18,7 @@ import java.util.function.Consumer
 import javax.inject.Inject
 
 internal class SharedDataSessionEventService @Inject constructor(
-    @SharedDataSessionStoreData dataMap: SharedMap<String, ByteArray>,
-    private val sessionCodec: SessionCodec,
+    @SharedDataSessionStoreData dataMap: SharedMap<String, SharedDataSessionImpl>,
 ) : SessionEventService {
 
     private val subscriptionPublisher: SubmissionPublisher<SessionEvent> =
@@ -28,11 +27,10 @@ internal class SharedDataSessionEventService @Inject constructor(
         }
 
     init {
-        dataMap.addListener { mapEvent: SharedMapEvent<String, ByteArray> ->
+        dataMap.addListener { mapEvent: SharedMapEvent<String, SharedDataSessionImpl> ->
             when (mapEvent) {
                 is EntryExpiredEvent -> {
-                    val sessionEvent: SessionEvent =
-                        SessionExpiredEvent(session = sessionCodec.deserialize(bytes = mapEvent.oldValue))
+                    val sessionEvent: SessionEvent = SessionExpiredEvent(session = mapEvent.oldValue)
                     log.debug("Expired session event received: $sessionEvent")
                     subscriptionPublisher.submit(sessionEvent)
                 }

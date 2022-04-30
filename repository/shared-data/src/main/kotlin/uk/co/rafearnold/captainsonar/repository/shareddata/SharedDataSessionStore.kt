@@ -11,14 +11,12 @@ import io.vertx.ext.web.sstore.SessionStore
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
 import uk.co.rafearnold.captainsonar.shareddata.SharedMap
 import java.util.concurrent.TimeUnit
 
 internal class SharedDataSessionStore(
     vertx: Vertx,
-    private val sessionMap: SharedMap<String, ByteArray>,
-    private val sessionCodec: SessionCodec,
+    private val sessionMap: SharedMap<String, SharedDataSessionImpl>,
 ) : SessionStore {
 
     private val retryTimeout: Long = DEFAULT_RETRY_TIMEOUT_MS
@@ -37,7 +35,7 @@ internal class SharedDataSessionStore(
 
     override fun get(cookieValue: String, resultHandler: Handler<AsyncResult<Session>>) {
         log.trace("Retrieving session with ID $cookieValue")
-        val session: SharedDataSessionImpl? = getSession(sessionId = cookieValue)
+        val session: SharedDataSessionImpl? = sessionMap[cookieValue]
         session?.setPRNG(random)
         resultHandler.handle(Future.succeededFuture(session))
     }
@@ -50,7 +48,7 @@ internal class SharedDataSessionStore(
 
     override fun put(session: Session, resultHandler: Handler<AsyncResult<Void>>) {
         log.trace("Putting session with ID ${session.id()}")
-        val oldSession: SharedDataSessionImpl? = getSession(sessionId = session.id())
+        val oldSession: SharedDataSessionImpl? = sessionMap[session.id()]
         val newSession: SharedDataSessionImpl = session as SharedDataSessionImpl
         if (oldSession != null && oldSession.version() != newSession.version()) {
             resultHandler.handle(Future.failedFuture("Version mismatch"))
@@ -59,7 +57,7 @@ internal class SharedDataSessionStore(
         newSession.incrementVersion()
         sessionMap.put(
             key = session.id(),
-            value = sessionCodec.serialize(session = session),
+            value = session,
             ttl = session.timeout(),
             ttlUnit = TimeUnit.MILLISECONDS
         )
@@ -79,9 +77,6 @@ internal class SharedDataSessionStore(
     override fun close() {
         // No closing operations required.
     }
-
-    private fun getSession(sessionId: String): SharedDataSessionImpl? =
-        sessionMap[sessionId]?.let { sessionCodec.deserialize(bytes = it) }
 
     companion object {
         private val log: Logger = LoggerFactory.getLogger(SharedDataSessionStore::class.java)
