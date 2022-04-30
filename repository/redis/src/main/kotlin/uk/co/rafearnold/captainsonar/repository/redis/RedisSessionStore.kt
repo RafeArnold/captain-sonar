@@ -12,7 +12,6 @@ import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import redis.clients.jedis.Jedis
-import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
 import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
 import uk.co.rafearnold.captainsonar.shareddata.SharedLock
 import uk.co.rafearnold.captainsonar.shareddata.getDistributedLock
@@ -24,7 +23,7 @@ import uk.co.rafearnold.captainsonar.shareddata.withLock
 internal class RedisSessionStore(
     vertx: Vertx,
     private val redisClientProvider: RedisClientProvider,
-    private val sessionCodec: SessionCodec,
+    private val sessionCodec: RedisSessionCodec,
     sharedDataService: SharedDataService,
 ) : SessionStore {
 

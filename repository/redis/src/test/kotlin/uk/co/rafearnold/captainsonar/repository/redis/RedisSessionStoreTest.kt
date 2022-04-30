@@ -23,8 +23,6 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
 import redis.clients.jedis.Jedis
 import uk.co.rafearnold.captainsonar.common.toCompletableFuture
-import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
-import uk.co.rafearnold.captainsonar.repository.session.SessionCodecImpl
 import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
 import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleClusterManager
 import java.io.ByteArrayInputStream
@@ -93,7 +91,7 @@ class RedisSessionStoreTest {
     fun `a session can be inserted into the db`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
         val sessionStore =
@@ -182,7 +180,7 @@ class RedisSessionStoreTest {
     fun `when a session is inserted with the same id as an existing session but a different version then an exception is thrown`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
         val sessionStore =
@@ -219,7 +217,7 @@ class RedisSessionStoreTest {
     fun `when a session is inserted then its version is incremented`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
         val sessionStore =
@@ -262,7 +260,7 @@ class RedisSessionStoreTest {
     fun `sessions are inserted with a expiration time`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
         val sessionStore =
@@ -303,7 +301,7 @@ class RedisSessionStoreTest {
     fun `a session can be retrieved by its id`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
         val sessionStore =
@@ -411,7 +409,7 @@ class RedisSessionStoreTest {
     fun `when a session's shadow key has expired then null is returned when the session is requested`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
         val sessionStore =
@@ -501,7 +499,7 @@ class RedisSessionStoreTest {
     fun `the id of a session can be regenerated after being retrieved`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
         val sessionStore =
@@ -548,7 +546,7 @@ class RedisSessionStoreTest {
     fun `a session can be deleted by id`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
         val sessionStore =
@@ -643,7 +641,7 @@ class RedisSessionStoreTest {
     fun `all sessions can be deleted`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
         val sessionStore =
@@ -700,7 +698,7 @@ class RedisSessionStoreTest {
     fun `when all sessions are cleared but there are no sessions in the db then no operation is performed`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
         val sessionStore =
@@ -735,7 +733,7 @@ class RedisSessionStoreTest {
     fun `the number of sessions in the db can be retrieved`() {
         val vertx: Vertx = Vertx.vertx()
         val redisClientProvider: RedisClientProvider = mockk()
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
         val sessionStore =

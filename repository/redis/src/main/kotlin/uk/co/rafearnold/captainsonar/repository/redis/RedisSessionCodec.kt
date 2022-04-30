@@ -1,8 +1,8 @@
-package uk.co.rafearnold.captainsonar.repository.session
+package uk.co.rafearnold.captainsonar.repository.redis
 
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl
 
-interface SessionCodec {
+interface RedisSessionCodec {
 
     fun serialize(session: SharedDataSessionImpl): ByteArray
 

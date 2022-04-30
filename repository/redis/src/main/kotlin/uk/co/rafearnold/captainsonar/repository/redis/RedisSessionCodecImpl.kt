@@ -1,9 +1,9 @@
-package uk.co.rafearnold.captainsonar.repository.session
+package uk.co.rafearnold.captainsonar.repository.redis
 
 import io.vertx.core.buffer.Buffer
 import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl
 
-class SessionCodecImpl : SessionCodec {
+class RedisSessionCodecImpl : RedisSessionCodec {
 
     override fun serialize(session: SharedDataSessionImpl): ByteArray {
         val buffer: Buffer = Buffer.buffer()

@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.JedisPubSub
 import uk.co.rafearnold.captainsonar.common.Subscription
-import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
 import uk.co.rafearnold.captainsonar.repository.session.SessionEvent
 import uk.co.rafearnold.captainsonar.repository.session.SessionEventService
 import uk.co.rafearnold.captainsonar.repository.session.SessionExpiredEvent
@@ -29,7 +28,7 @@ import kotlin.concurrent.withLock
  */
 internal class RedisSessionEventService @Inject constructor(
     private val redisClientProvider: RedisClientProvider,
-    private val sessionCodec: SessionCodec,
+    private val sessionCodec: RedisSessionCodec,
 ) : SessionEventService {
 
     private val subscriptionPublisher: SubmissionPublisher<SessionEvent> =

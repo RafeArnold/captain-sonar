@@ -2,7 +2,6 @@ package uk.co.rafearnold.captainsonar.repository.redis
 
 import io.vertx.core.Vertx
 import io.vertx.ext.web.sstore.SessionStore
-import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
 import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
 import javax.inject.Inject
 import javax.inject.Provider
@@ -10,7 +9,7 @@ import javax.inject.Provider
 class RedisSessionStoreProvider @Inject constructor(
     vertx: Vertx,
     redisClientProvider: RedisClientProvider,
-    sessionCodec: SessionCodec,
+    sessionCodec: RedisSessionCodec,
     sharedDataService: SharedDataService,
 ) : Provider<SessionStore> {
 

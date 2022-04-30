@@ -23,8 +23,6 @@ import redis.clients.jedis.params.SetParams
 import uk.co.rafearnold.captainsonar.common.Subscription
 import uk.co.rafearnold.captainsonar.config.ObservableMutableMap
 import uk.co.rafearnold.captainsonar.config.ObservableMutableMapImpl
-import uk.co.rafearnold.captainsonar.repository.session.SessionCodec
-import uk.co.rafearnold.captainsonar.repository.session.SessionCodecImpl
 import uk.co.rafearnold.captainsonar.repository.session.SessionEvent
 import uk.co.rafearnold.captainsonar.repository.session.SessionExpiredEvent
 import java.util.*
@@ -71,7 +69,7 @@ class RedisSessionEventServiceTest {
         val vertx: Vertx = Vertx.vertx()
 
         val redisClientProvider: RedisClientProvider = mockk(relaxed = true)
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
         val eventService =
             RedisSessionEventService(
                 redisClientProvider = redisClientProvider,
@@ -190,7 +188,7 @@ class RedisSessionEventServiceTest {
         appConfig["redis.connection.host"] = redisContainer1.host
         appConfig["redis.connection.port"] = redisContainer1.firstMappedPort.toString()
         val redisClientProvider = RedisClientProvider(appConfig)
-        val sessionCodec: SessionCodec = SessionCodecImpl()
+        val sessionCodec: RedisSessionCodec = RedisSessionCodecImpl()
         val eventService =
             RedisSessionEventService(
                 redisClientProvider = redisClientProvider,
