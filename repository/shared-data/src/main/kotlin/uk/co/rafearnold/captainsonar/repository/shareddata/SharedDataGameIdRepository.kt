@@ -1,9 +1,9 @@
 package uk.co.rafearnold.captainsonar.repository.shareddata
 
 import uk.co.rafearnold.captainsonar.repository.GameIdRepository
-import uk.co.rafearnold.captainsonar.shareddata.SharedAtomicLong
-import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
-import uk.co.rafearnold.captainsonar.shareddata.getDistributedLong
+import uk.co.rafearnold.commons.shareddata.SharedAtomicLong
+import uk.co.rafearnold.commons.shareddata.SharedDataService
+import uk.co.rafearnold.commons.shareddata.getDistributedLong
 import javax.inject.Inject
 
 class SharedDataGameIdRepository @Inject constructor(

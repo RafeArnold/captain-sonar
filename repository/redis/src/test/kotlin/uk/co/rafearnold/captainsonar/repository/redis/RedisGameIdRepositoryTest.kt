@@ -11,8 +11,8 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
 import redis.clients.jedis.Jedis
-import uk.co.rafearnold.captainsonar.config.ObservableMap
-import uk.co.rafearnold.captainsonar.config.ObservableMutableMapImpl
+import uk.co.rafearnold.commons.config.ObservableMap
+import uk.co.rafearnold.commons.config.ObservableMutableMapImpl
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 

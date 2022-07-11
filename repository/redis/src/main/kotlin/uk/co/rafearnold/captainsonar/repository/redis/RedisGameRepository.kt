@@ -10,10 +10,10 @@ import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
 import uk.co.rafearnold.captainsonar.repository.GameRepository
 import uk.co.rafearnold.captainsonar.repository.StoredGame
 import uk.co.rafearnold.captainsonar.repository.UpdateStoredGameOperation
-import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
-import uk.co.rafearnold.captainsonar.shareddata.SharedLock
-import uk.co.rafearnold.captainsonar.shareddata.getDistributedLock
-import uk.co.rafearnold.captainsonar.shareddata.withLock
+import uk.co.rafearnold.commons.shareddata.SharedDataService
+import uk.co.rafearnold.commons.shareddata.SharedLock
+import uk.co.rafearnold.commons.shareddata.getDistributedLock
+import uk.co.rafearnold.commons.shareddata.withLock
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 

@@ -25,9 +25,6 @@ import uk.co.rafearnold.captainsonar.common.NoSuchPlayerFoundException
 import uk.co.rafearnold.captainsonar.common.PlayerAlreadyJoinedGameException
 import uk.co.rafearnold.captainsonar.common.Subscription
 import uk.co.rafearnold.captainsonar.common.UserIsNotHostException
-import uk.co.rafearnold.captainsonar.config.ObservableMap
-import uk.co.rafearnold.captainsonar.config.ObservableMutableMap
-import uk.co.rafearnold.captainsonar.config.ObservableMutableMapImpl
 import uk.co.rafearnold.captainsonar.eventapi.v1.EventApiV1Service
 import uk.co.rafearnold.captainsonar.eventapi.v1.GameEventEventApiV1Handler
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameEndedEventEventApiV1Model
@@ -55,8 +52,11 @@ import uk.co.rafearnold.captainsonar.repository.SetStartedOperation
 import uk.co.rafearnold.captainsonar.repository.StoredGame
 import uk.co.rafearnold.captainsonar.repository.StoredPlayer
 import uk.co.rafearnold.captainsonar.repository.UpdateStoredGameOperation
-import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
-import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleClusterManager
+import uk.co.rafearnold.commons.config.ObservableMap
+import uk.co.rafearnold.commons.config.ObservableMutableMap
+import uk.co.rafearnold.commons.config.ObservableMutableMapImpl
+import uk.co.rafearnold.commons.shareddata.SharedDataService
+import uk.co.rafearnold.commons.shareddata.simple.SimpleClusterManager
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit

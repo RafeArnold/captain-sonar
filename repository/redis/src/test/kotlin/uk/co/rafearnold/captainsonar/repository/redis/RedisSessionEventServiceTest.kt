@@ -21,11 +21,11 @@ import redis.clients.jedis.Jedis
 import redis.clients.jedis.JedisPool
 import redis.clients.jedis.params.SetParams
 import uk.co.rafearnold.captainsonar.common.Subscription
-import uk.co.rafearnold.captainsonar.config.ObservableMutableMap
-import uk.co.rafearnold.captainsonar.config.ObservableMutableMapImpl
 import uk.co.rafearnold.captainsonar.repository.session.SessionEvent
 import uk.co.rafearnold.captainsonar.repository.session.SessionExpiredEvent
-import java.util.*
+import uk.co.rafearnold.commons.config.ObservableMutableMap
+import uk.co.rafearnold.commons.config.ObservableMutableMapImpl
+import java.util.Queue
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue

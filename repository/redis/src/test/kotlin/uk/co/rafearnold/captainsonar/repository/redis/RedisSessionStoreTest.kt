@@ -23,14 +23,14 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
 import redis.clients.jedis.Jedis
 import uk.co.rafearnold.captainsonar.common.toCompletableFuture
-import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
-import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleClusterManager
+import uk.co.rafearnold.commons.shareddata.SharedDataService
+import uk.co.rafearnold.commons.shareddata.simple.SimpleClusterManager
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInput
 import java.io.DataInputStream
 import java.io.DataOutputStream
-import java.util.*
+import java.util.Base64
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random

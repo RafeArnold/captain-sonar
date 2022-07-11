@@ -13,7 +13,7 @@ import java.io.ByteArrayOutputStream
 import java.io.DataInput
 import java.io.DataInputStream
 import java.io.DataOutputStream
-import java.util.*
+import java.util.Base64
 import kotlin.random.Random
 
 class RedisSessionCodecImplTest {

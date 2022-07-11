@@ -3,9 +3,9 @@ package uk.co.rafearnold.captainsonar
 import com.google.common.math.IntMath
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import uk.co.rafearnold.captainsonar.config.ObservableMap
-import uk.co.rafearnold.captainsonar.config.addListener
 import uk.co.rafearnold.captainsonar.repository.GameIdRepository
+import uk.co.rafearnold.commons.config.ObservableMap
+import uk.co.rafearnold.commons.config.addListener
 import java.security.SecureRandom
 import javax.inject.Inject
 

@@ -3,8 +3,8 @@ package uk.co.rafearnold.captainsonar
 import com.google.inject.AbstractModule
 import com.google.inject.Provides
 import com.google.inject.Singleton
-import uk.co.rafearnold.captainsonar.config.ObservableMap
 import uk.co.rafearnold.captainsonar.repository.GameIdRepository
+import uk.co.rafearnold.commons.config.ObservableMap
 
 class FpeGameIdGeneratorModule : AbstractModule() {
 

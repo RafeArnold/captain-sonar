@@ -4,8 +4,8 @@ plugins {
 
 dependencies {
     implementation project(":common")
-    implementation project(":common:config")
-    implementation project(":common:shared-data")
+    implementation "uk.co.rafearnold:commons-config:$commons_version"
+    implementation "uk.co.rafearnold:commons-shared-data:$commons_version"
     implementation project(":repository")
     implementation project(":event-api:v1")
     implementation "com.google.inject:guice:$guice_version"
@@ -15,9 +15,17 @@ dependencies {
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
     testImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
     testImplementation "io.mockk:mockk:$mockk_version"
-    testImplementation project(":common:shared-data:simple")
+    testImplementation "uk.co.rafearnold:commons-shared-data-simple:$commons_version"
 }
 
 test {
     useJUnitPlatform()
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = '11'
+}
+
+compileTestKotlin {
+    kotlinOptions.jvmTarget = '11'
 }

@@ -1,8 +1,8 @@
 package uk.co.rafearnold.captainsonar
 
 import com.privacylogistics.FF3Cipher
-import uk.co.rafearnold.captainsonar.config.ObservableMap
-import uk.co.rafearnold.captainsonar.config.addListener
+import uk.co.rafearnold.commons.config.ObservableMap
+import uk.co.rafearnold.commons.config.addListener
 import javax.inject.Provider
 
 class FpeGameIdCipherProvider(

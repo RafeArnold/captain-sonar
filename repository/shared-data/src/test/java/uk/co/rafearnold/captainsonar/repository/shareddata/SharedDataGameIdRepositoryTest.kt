@@ -6,10 +6,10 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import uk.co.rafearnold.captainsonar.shareddata.SharedAtomicLong
-import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
-import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleClusterManager
-import uk.co.rafearnold.captainsonar.shareddata.getDistributedLong
+import uk.co.rafearnold.commons.shareddata.SharedAtomicLong
+import uk.co.rafearnold.commons.shareddata.SharedDataService
+import uk.co.rafearnold.commons.shareddata.getDistributedLong
+import uk.co.rafearnold.commons.shareddata.simple.SimpleClusterManager
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 

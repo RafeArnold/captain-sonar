@@ -7,9 +7,9 @@ import uk.co.rafearnold.captainsonar.common.Subscription
 import uk.co.rafearnold.captainsonar.repository.session.SessionEvent
 import uk.co.rafearnold.captainsonar.repository.session.SessionEventService
 import uk.co.rafearnold.captainsonar.repository.session.SessionExpiredEvent
-import uk.co.rafearnold.captainsonar.shareddata.EntryExpiredEvent
-import uk.co.rafearnold.captainsonar.shareddata.SharedMap
-import uk.co.rafearnold.captainsonar.shareddata.SharedMapEvent
+import uk.co.rafearnold.commons.shareddata.EntryExpiredEvent
+import uk.co.rafearnold.commons.shareddata.SharedMap
+import uk.co.rafearnold.commons.shareddata.SharedMapEvent
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.Flow

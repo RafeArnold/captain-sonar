@@ -8,7 +8,7 @@ import uk.co.rafearnold.captainsonar.common.typeLiteral
 import uk.co.rafearnold.captainsonar.repository.GameIdRepository
 import uk.co.rafearnold.captainsonar.repository.GameRepository
 import uk.co.rafearnold.captainsonar.repository.session.SessionEventService
-import uk.co.rafearnold.captainsonar.shareddata.SharedMap
+import uk.co.rafearnold.commons.shareddata.SharedMap
 
 class SharedDataRepositoryModule : AbstractModule() {
 

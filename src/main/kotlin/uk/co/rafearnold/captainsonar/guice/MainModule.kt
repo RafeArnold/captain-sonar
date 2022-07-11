@@ -13,7 +13,6 @@ import uk.co.rafearnold.captainsonar.common.Register
 import uk.co.rafearnold.captainsonar.config.ConfigObserver
 import uk.co.rafearnold.captainsonar.config.ConfigProvider
 import uk.co.rafearnold.captainsonar.config.ConfigRetrieverProvider
-import uk.co.rafearnold.captainsonar.config.ObservableMap
 import uk.co.rafearnold.captainsonar.http.BodyHandlerRouteRegister
 import uk.co.rafearnold.captainsonar.http.FrontEndHandlerRouteRegister
 import uk.co.rafearnold.captainsonar.http.HealthCheckHandlerRouteRegister
@@ -21,6 +20,7 @@ import uk.co.rafearnold.captainsonar.http.LoggingHandlerRouteRegister
 import uk.co.rafearnold.captainsonar.http.RouterProvider
 import uk.co.rafearnold.captainsonar.http.ServerRegister
 import uk.co.rafearnold.captainsonar.http.SessionHandlerRouteRegister
+import uk.co.rafearnold.commons.config.ObservableMap
 
 class MainModule(
     private val vertx: Vertx,

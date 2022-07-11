@@ -18,11 +18,11 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import uk.co.rafearnold.captainsonar.common.toCompletableFuture
-import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
-import uk.co.rafearnold.captainsonar.shareddata.SharedMap
-import uk.co.rafearnold.captainsonar.shareddata.getDistributedMap
-import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleClusterManager
-import java.util.*
+import uk.co.rafearnold.commons.shareddata.SharedDataService
+import uk.co.rafearnold.commons.shareddata.SharedMap
+import uk.co.rafearnold.commons.shareddata.getDistributedMap
+import uk.co.rafearnold.commons.shareddata.simple.SimpleClusterManager
+import java.util.Base64
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random

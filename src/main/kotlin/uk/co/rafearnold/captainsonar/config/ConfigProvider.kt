@@ -5,6 +5,8 @@ import io.vertx.config.ConfigRetriever
 import io.vertx.core.json.JsonObject
 import uk.co.rafearnold.captainsonar.common.Register
 import uk.co.rafearnold.captainsonar.common.toCompletableFuture
+import uk.co.rafearnold.commons.config.ObservableMutableMap
+import uk.co.rafearnold.commons.config.ObservableMutableMapImpl
 import java.util.concurrent.CompletableFuture
 import javax.inject.Inject
 import javax.inject.Provider

@@ -12,10 +12,10 @@ import io.vertx.ext.web.sstore.impl.SharedDataSessionImpl
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import redis.clients.jedis.Jedis
-import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
-import uk.co.rafearnold.captainsonar.shareddata.SharedLock
-import uk.co.rafearnold.captainsonar.shareddata.getDistributedLock
-import uk.co.rafearnold.captainsonar.shareddata.withLock
+import uk.co.rafearnold.commons.shareddata.SharedDataService
+import uk.co.rafearnold.commons.shareddata.SharedLock
+import uk.co.rafearnold.commons.shareddata.getDistributedLock
+import uk.co.rafearnold.commons.shareddata.withLock
 
 /**
  * Responsibility of session storage is shared between this class and [RedisSessionEventService].

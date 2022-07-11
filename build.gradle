@@ -7,13 +7,27 @@ plugins {
 group 'uk.co.rafearnold'
 version '1.0.0-SNAPSHOT'
 
+ext {
+    s3ArtifactsUrl = S3_RELEASES_URL
+    awsAccessKey = AWS_ACCESS_KEY
+    awsSecretKey = AWS_SECRET_KEY
+}
+
 allprojects {
     repositories {
         mavenCentral()
+        maven {
+            url = s3ArtifactsUrl
+            credentials(AwsCredentials) {
+                accessKey awsAccessKey
+                secretKey awsSecretKey
+            }
+        }
     }
 }
 
 ext {
+    commons_version = '1.0.0-SNAPSHOT'
     vertx_version = '4.2.7'
     hazelcast_version = '4.2.2'
     guice_version = '5.1.0'
@@ -30,8 +44,8 @@ ext {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation project(":common")
-    implementation project(":common:config")
-    implementation project(":common:shared-data:hazelcast")
+    implementation "uk.co.rafearnold:commons-config:$commons_version"
+    implementation "uk.co.rafearnold:commons-shared-data-hazelcast:$commons_version"
     implementation project(":repository:session")
     implementation project(":repository:redis")
     implementation project(":repository:shared-data")
@@ -68,4 +82,12 @@ runShadow {
 
 test {
     useJUnitPlatform()
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = '11'
+}
+
+compileTestKotlin {
+    kotlinOptions.jvmTarget = '11'
 }

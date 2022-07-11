@@ -2,7 +2,7 @@ package uk.co.rafearnold.captainsonar.repository.redis
 
 import io.vertx.core.Vertx
 import io.vertx.ext.web.sstore.SessionStore
-import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
+import uk.co.rafearnold.commons.shareddata.SharedDataService
 import javax.inject.Inject
 import javax.inject.Provider
 

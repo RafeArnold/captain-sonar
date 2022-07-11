@@ -1,6 +1,9 @@
 package uk.co.rafearnold.captainsonar.config
 
 import io.vertx.core.json.JsonObject
+import uk.co.rafearnold.commons.config.ObservableMap
+import uk.co.rafearnold.commons.config.ObservableMutableMap
+import uk.co.rafearnold.commons.config.addListener
 
 class ObservableJsonObject(backingMap: ObservableMutableMap<String, Any>) : JsonObject(backingMap) {
 

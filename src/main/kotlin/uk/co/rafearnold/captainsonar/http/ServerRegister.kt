@@ -7,8 +7,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import uk.co.rafearnold.captainsonar.common.Register
 import uk.co.rafearnold.captainsonar.common.toCompletableFuture
-import uk.co.rafearnold.captainsonar.config.ObservableMap
-import uk.co.rafearnold.captainsonar.config.addListener
+import uk.co.rafearnold.commons.config.ObservableMap
+import uk.co.rafearnold.commons.config.addListener
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Semaphore
 import javax.inject.Inject

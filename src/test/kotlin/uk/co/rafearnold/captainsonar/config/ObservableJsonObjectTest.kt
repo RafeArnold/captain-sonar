@@ -3,6 +3,9 @@ package uk.co.rafearnold.captainsonar.config
 import io.vertx.core.json.JsonObject
 import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
+import uk.co.rafearnold.commons.config.ListenEventImpl
+import uk.co.rafearnold.commons.config.ObservableMap
+import uk.co.rafearnold.commons.config.ObservableMutableMapImpl
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit

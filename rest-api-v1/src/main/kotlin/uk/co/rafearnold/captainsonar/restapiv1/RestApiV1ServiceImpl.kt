@@ -15,10 +15,10 @@ import uk.co.rafearnold.captainsonar.restapiv1.model.JoinGameRequestRestApiV1Mod
 import uk.co.rafearnold.captainsonar.restapiv1.model.JoinGameResponseRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.StartGameResponseRestApiV1Model
 import uk.co.rafearnold.captainsonar.restapiv1.model.mapper.RestApiV1ModelMapper
-import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
-import uk.co.rafearnold.captainsonar.shareddata.SharedLock
-import uk.co.rafearnold.captainsonar.shareddata.getDistributedLock
-import uk.co.rafearnold.captainsonar.shareddata.withLock
+import uk.co.rafearnold.commons.shareddata.SharedDataService
+import uk.co.rafearnold.commons.shareddata.SharedLock
+import uk.co.rafearnold.commons.shareddata.getDistributedLock
+import uk.co.rafearnold.commons.shareddata.withLock
 import javax.inject.Inject
 
 class RestApiV1ServiceImpl @Inject constructor(

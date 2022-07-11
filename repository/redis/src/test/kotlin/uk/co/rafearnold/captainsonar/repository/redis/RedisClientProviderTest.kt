@@ -14,11 +14,11 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
 import redis.clients.jedis.DefaultJedisClientConfig
 import redis.clients.jedis.Jedis
-import uk.co.rafearnold.captainsonar.config.ObservableMap
-import uk.co.rafearnold.captainsonar.config.ObservableMutableMap
-import uk.co.rafearnold.captainsonar.config.ObservableMutableMapImpl
-import uk.co.rafearnold.captainsonar.config.addListener
-import java.util.*
+import uk.co.rafearnold.commons.config.ObservableMap
+import uk.co.rafearnold.commons.config.ObservableMutableMap
+import uk.co.rafearnold.commons.config.ObservableMutableMapImpl
+import uk.co.rafearnold.commons.config.addListener
+import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit

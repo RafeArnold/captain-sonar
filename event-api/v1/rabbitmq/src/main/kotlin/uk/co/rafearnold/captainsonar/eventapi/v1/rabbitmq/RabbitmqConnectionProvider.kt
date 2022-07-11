@@ -2,8 +2,8 @@ package uk.co.rafearnold.captainsonar.eventapi.v1.rabbitmq
 
 import com.rabbitmq.client.Connection
 import com.rabbitmq.client.ConnectionFactory
-import uk.co.rafearnold.captainsonar.config.ObservableMap
-import uk.co.rafearnold.captainsonar.config.addListener
+import uk.co.rafearnold.commons.config.ObservableMap
+import uk.co.rafearnold.commons.config.addListener
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton

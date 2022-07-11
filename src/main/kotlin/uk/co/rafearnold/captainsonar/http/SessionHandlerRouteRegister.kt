@@ -6,8 +6,8 @@ import io.vertx.ext.web.sstore.SessionStore
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import uk.co.rafearnold.captainsonar.common.Register
-import uk.co.rafearnold.captainsonar.config.ObservableMap
-import uk.co.rafearnold.captainsonar.config.addListener
+import uk.co.rafearnold.commons.config.ObservableMap
+import uk.co.rafearnold.commons.config.addListener
 import java.util.concurrent.CompletableFuture
 import javax.inject.Inject
 

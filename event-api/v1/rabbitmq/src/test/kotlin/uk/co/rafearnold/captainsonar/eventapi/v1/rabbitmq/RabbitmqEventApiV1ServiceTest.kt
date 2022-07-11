@@ -24,7 +24,7 @@ import uk.co.rafearnold.captainsonar.eventapi.v1.model.GameStartedEventEventApiV
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.PlayerAddedEventEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.model.PlayerEventApiV1Model
 import uk.co.rafearnold.captainsonar.eventapi.v1.rabbitmq.model.codec.RabbitmqGameEventEventApiV1ModelCodec
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit

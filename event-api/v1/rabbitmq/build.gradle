@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     implementation project(":common")
-    implementation project(":common:config")
+    implementation "uk.co.rafearnold:commons-config:$commons_version"
     implementation project(":event-api:v1")
     implementation "com.rabbitmq:amqp-client:$rabbitmq_version"
     implementation "com.fasterxml.jackson.core:jackson-databind:$jackson_version"

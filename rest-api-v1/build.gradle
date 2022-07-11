@@ -4,10 +4,18 @@ plugins {
 
 dependencies {
     implementation project(":common")
-    implementation project(":common:shared-data")
+    implementation "uk.co.rafearnold:commons-shared-data:$commons_version"
     implementation project(":internal-api")
     implementation project(":repository:session")
     implementation "io.vertx:vertx-web:$vertx_version"
     implementation "com.google.inject:guice:$guice_version"
     implementation "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = '11'
+}
+
+compileTestKotlin {
+    kotlinOptions.jvmTarget = '11'
 }

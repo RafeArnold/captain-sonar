@@ -8,8 +8,8 @@ import redis.clients.jedis.Jedis
 import redis.clients.jedis.JedisPool
 import redis.clients.jedis.JedisPoolConfig
 import uk.co.rafearnold.captainsonar.common.Subscription
-import uk.co.rafearnold.captainsonar.config.ObservableMap
-import uk.co.rafearnold.captainsonar.config.addListener
+import uk.co.rafearnold.commons.config.ObservableMap
+import uk.co.rafearnold.commons.config.addListener
 import java.util.concurrent.Executors
 import java.util.concurrent.Flow
 import java.util.concurrent.SubmissionPublisher

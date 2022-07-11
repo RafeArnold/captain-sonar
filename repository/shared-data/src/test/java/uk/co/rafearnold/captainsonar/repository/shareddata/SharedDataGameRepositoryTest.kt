@@ -17,10 +17,10 @@ import uk.co.rafearnold.captainsonar.repository.SetStartedOperation
 import uk.co.rafearnold.captainsonar.repository.StoredGame
 import uk.co.rafearnold.captainsonar.repository.StoredPlayer
 import uk.co.rafearnold.captainsonar.repository.UpdateStoredGameOperation
-import uk.co.rafearnold.captainsonar.shareddata.SharedDataService
-import uk.co.rafearnold.captainsonar.shareddata.SharedMap
-import uk.co.rafearnold.captainsonar.shareddata.simple.SimpleClusterManager
-import uk.co.rafearnold.captainsonar.shareddata.getDistributedMap
+import uk.co.rafearnold.commons.shareddata.SharedDataService
+import uk.co.rafearnold.commons.shareddata.SharedMap
+import uk.co.rafearnold.commons.shareddata.getDistributedMap
+import uk.co.rafearnold.commons.shareddata.simple.SimpleClusterManager
 import java.util.concurrent.TimeUnit
 
 class SharedDataGameRepositoryTest {
