@@ -7,6 +7,10 @@ plugins {
 group 'uk.co.rafearnold'
 version '1.0.0-SNAPSHOT'
 
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
 ext {
     s3ArtifactsUrl = S3_RELEASES_URL
     awsAccessKey = AWS_ACCESS_KEY
