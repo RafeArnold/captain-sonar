@@ -57,7 +57,7 @@ class FpeGameIdCipherProviderTest {
         appConfig["game.id-generator.cipher.tweak"] = tweak1
 
         val listenerEvents: MutableSet<ObservableMap.ListenEvent<String, String>> = ConcurrentHashMap.newKeySet()
-        mockkStatic("uk.co.rafearnold.captainsonar.config.ObservableMapExtensionFunctionsKt")
+        mockkStatic("uk.co.rafearnold.commons.config.ObservableMapExtensionFunctionsKt")
         every {
             appConfig.addListener(keyRegex = any(), listener = any())
         } answers {

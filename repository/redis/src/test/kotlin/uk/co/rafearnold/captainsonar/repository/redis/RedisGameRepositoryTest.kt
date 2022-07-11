@@ -1,17 +1,15 @@
 package uk.co.rafearnold.captainsonar.repository.redis
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
+import io.vertx.core.buffer.Buffer
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatExceptionOfType
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -52,12 +50,10 @@ class RedisGameRepositoryTest {
         val redisClientProvider: RedisClientProvider = mockk()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val objectMapper: ObjectMapper = jacksonObjectMapper()
         val repository =
             RedisGameRepository(
                 redisClientProvider = redisClientProvider,
                 sharedDataService = sharedDataService,
-                objectMapper = objectMapper
             )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
@@ -77,14 +73,18 @@ class RedisGameRepositoryTest {
         val ttlMs: Long = 100
         repository.createGame(gameId = gameId, game = storedGame, ttl = ttlMs, ttlUnit = TimeUnit.MILLISECONDS)
 
-        val actualResult: String = redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId")
-        val expectedResult =
-            """{"hostId":"test_hostId","players":{"test_playerId1":{"name":"test_playerName1"},"test_playerId2":{"name":"test_playerName2"},"test_playerId3":{"name":"test_playerName3"}},"started":false}"""
-        assertEquals(expectedResult, actualResult)
+        val actualResult: ByteArray = redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId".toByteArray())
+        val expectedResult: ByteArray =
+            serializeGameV1(
+                hostId = storedGame.hostId,
+                players = storedGame.players.mapValues { it.value.name },
+                started = storedGame.started,
+            )
+        assertThat(actualResult).containsExactly(expectedResult.toTypedArray())
 
         // Verify the game is deleted after the specified TTL.
         Thread.sleep(ttlMs)
-        assertNull(redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId"))
+        assertThat(redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId")).isNull()
     }
 
     @Test
@@ -92,12 +92,10 @@ class RedisGameRepositoryTest {
         val redisClientProvider: RedisClientProvider = mockk()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val objectMapper: ObjectMapper = jacksonObjectMapper()
         val repository =
             RedisGameRepository(
                 redisClientProvider = redisClientProvider,
                 sharedDataService = sharedDataService,
-                objectMapper = objectMapper
             )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
@@ -119,20 +117,21 @@ class RedisGameRepositoryTest {
                 started = false
             )
         val ttlMs: Long = 100
-        val exception: GameAlreadyExistsException =
-            assertThrows {
-                repository.createGame(gameId = gameId, game = storedGame, ttl = ttlMs, ttlUnit = TimeUnit.MILLISECONDS)
+        assertThatExceptionOfType(GameAlreadyExistsException::class.java)
+            .isThrownBy {
+                repository
+                    .createGame(gameId = gameId, game = storedGame, ttl = ttlMs, ttlUnit = TimeUnit.MILLISECONDS)
             }
-        assertEquals(gameId, exception.gameId)
+            .isEqualTo(GameAlreadyExistsException(gameId = gameId))
 
         // Verify nothing changed.
-        assertEquals(setOf("uk.co.rafearnold.captainsonar.game.$gameId"), redisClient.keys("*"))
-        assertEquals(originalValue, redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId"))
+        assertThat(redisClient.keys("*")).containsOnly("uk.co.rafearnold.captainsonar.game.$gameId")
+        assertThat(redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId")).isEqualTo(originalValue)
 
         // Verify the existing game is NOT deleted after the specified TTL.
         Thread.sleep(ttlMs)
-        assertEquals(setOf("uk.co.rafearnold.captainsonar.game.$gameId"), redisClient.keys("*"))
-        assertEquals(originalValue, redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId"))
+        assertThat(redisClient.keys("*")).containsOnly("uk.co.rafearnold.captainsonar.game.$gameId")
+        assertThat(redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId")).isEqualTo(originalValue)
     }
 
     @Test
@@ -140,25 +139,17 @@ class RedisGameRepositoryTest {
         val redisClientProvider: RedisClientProvider = mockk()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val objectMapper: ObjectMapper = jacksonObjectMapper()
         val repository =
             RedisGameRepository(
                 redisClientProvider = redisClientProvider,
                 sharedDataService = sharedDataService,
-                objectMapper = objectMapper
             )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
         every { redisClientProvider.get() } returns redisClient
 
         val gameId = "test_gameId"
-        redisClient.set(
-            "uk.co.rafearnold.captainsonar.game.$gameId",
-            """{"hostId":"test_hostId","players":{"test_playerId1":{"name":"test_playerName1"},"test_playerId2":{"name":"test_playerName2"},"test_playerId3":{"name":"test_playerName3"}},"started":false}"""
-        )
-
-        val actualResult: StoredGame? = repository.loadGame(gameId = gameId)
-        val expectedResult =
+        val game =
             StoredGame(
                 hostId = "test_hostId",
                 players = mapOf(
@@ -166,9 +157,19 @@ class RedisGameRepositoryTest {
                     "test_playerId2" to StoredPlayer(name = "test_playerName2"),
                     "test_playerId3" to StoredPlayer(name = "test_playerName3"),
                 ),
-                started = false
+                started = false,
             )
-        assertEquals(expectedResult, actualResult)
+        redisClient.set(
+            "uk.co.rafearnold.captainsonar.game.$gameId".toByteArray(),
+            serializeGameV1(
+                hostId = game.hostId,
+                players = game.players.mapValues { it.value.name },
+                started = game.started,
+            ),
+        )
+
+        val actualResult: StoredGame? = repository.loadGame(gameId = gameId)
+        assertThat(actualResult).isEqualTo(game)
     }
 
     @Test
@@ -176,12 +177,10 @@ class RedisGameRepositoryTest {
         val redisClientProvider: RedisClientProvider = mockk()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val objectMapper: ObjectMapper = jacksonObjectMapper()
         val repository =
             RedisGameRepository(
                 redisClientProvider = redisClientProvider,
                 sharedDataService = sharedDataService,
-                objectMapper = objectMapper
             )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
@@ -189,7 +188,7 @@ class RedisGameRepositoryTest {
 
         val gameId = "test_gameId"
         val actualResult: StoredGame? = repository.loadGame(gameId = gameId)
-        assertNull(actualResult)
+        assertThat(actualResult).isNull()
     }
 
     @Test
@@ -197,21 +196,29 @@ class RedisGameRepositoryTest {
         val redisClientProvider: RedisClientProvider = mockk()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val objectMapper: ObjectMapper = jacksonObjectMapper()
         val repository =
             RedisGameRepository(
                 redisClientProvider = redisClientProvider,
                 sharedDataService = sharedDataService,
-                objectMapper = objectMapper
             )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
         every { redisClientProvider.get() } returns redisClient
 
         val gameId = "test_gameId"
+        val originalGame =
+            StoredGame(
+                hostId = "test_hostId",
+                players = mapOf("test_playerId1" to StoredPlayer(name = "test_playerName1")),
+                started = false,
+            )
         redisClient.set(
-            "uk.co.rafearnold.captainsonar.game.$gameId",
-            """{"hostId":"test_hostId","players":{"test_playerId1":{"name":"test_playerName1"}},"started":false}"""
+            "uk.co.rafearnold.captainsonar.game.$gameId".toByteArray(),
+            serializeGameV1(
+                hostId = originalGame.hostId,
+                players = originalGame.players.mapValues { it.value.name },
+                started = originalGame.started,
+            ),
         )
 
         val updateOperations: List<UpdateStoredGameOperation> =
@@ -238,15 +245,19 @@ class RedisGameRepositoryTest {
                 ),
                 started = true
             )
-        assertEquals(expectedResult, actualResult)
-        val actualRedisResult: String = redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId")
-        val expectedRedisResult =
-            """{"hostId":"test_hostId","players":{"test_playerId1":{"name":"test_playerName1"},"test_playerId2":{"name":"test_playerName2"},"test_playerId3":{"name":"test_playerName3"}},"started":true}"""
-        assertEquals(expectedRedisResult, actualRedisResult)
+        assertThat(actualResult).isEqualTo(expectedResult)
+        val actualRedisResult: ByteArray = redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId".toByteArray())
+        val expectedRedisResult: ByteArray =
+            serializeGameV1(
+                hostId = expectedResult.hostId,
+                players = expectedResult.players.mapValues { it.value.name },
+                started = expectedResult.started,
+            )
+        assertThat(expectedRedisResult).containsExactly(actualRedisResult.toTypedArray())
 
         // Verify the game is deleted after the specified TTL.
         Thread.sleep(ttlMs)
-        assertNull(redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId"))
+        assertThat(redisClient.get("uk.co.rafearnold.captainsonar.game.$gameId")).isNull()
     }
 
     @Test
@@ -254,12 +265,10 @@ class RedisGameRepositoryTest {
         val redisClientProvider: RedisClientProvider = mockk()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val objectMapper: ObjectMapper = jacksonObjectMapper()
         val repository =
             RedisGameRepository(
                 redisClientProvider = redisClientProvider,
                 sharedDataService = sharedDataService,
-                objectMapper = objectMapper
             )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
@@ -273,8 +282,8 @@ class RedisGameRepositoryTest {
                 AddPlayerOperation(playerId = "test_playerId3", player = StoredPlayer(name = "test_playerName3")),
             )
         val ttlMs: Long = 100
-        val exception: NoSuchGameFoundException =
-            assertThrows {
+        assertThatExceptionOfType(NoSuchGameFoundException::class.java)
+            .isThrownBy {
                 repository.updateGame(
                     gameId = gameId,
                     updateOperations = updateOperations,
@@ -282,10 +291,10 @@ class RedisGameRepositoryTest {
                     ttlUnit = TimeUnit.MILLISECONDS,
                 )
             }
-        assertEquals(gameId, exception.gameId)
+            .isEqualTo(NoSuchGameFoundException(gameId = gameId))
 
         // Verify nothing changed.
-        assertEquals(setOf<String>(), redisClient.keys("*"))
+        assertThat(redisClient.keys("*")).isEmpty()
     }
 
     @Test
@@ -293,35 +302,17 @@ class RedisGameRepositoryTest {
         val redisClientProvider: RedisClientProvider = mockk()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val objectMapper: ObjectMapper = jacksonObjectMapper()
         val repository =
             RedisGameRepository(
                 redisClientProvider = redisClientProvider,
                 sharedDataService = sharedDataService,
-                objectMapper = objectMapper
             )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
         every { redisClientProvider.get() } returns redisClient
 
         val gameId = "test_gameId"
-        redisClient.set(
-            "uk.co.rafearnold.captainsonar.game.$gameId",
-            """{"hostId":"test_hostId","players":{"test_playerId1":{"name":"test_playerName1"},"test_playerId2":{"name":"test_playerName2"},"test_playerId3":{"name":"test_playerName3"}},"started":false}"""
-        )
-        val key2 = "uk.co.rafearnold.captainsonar.game.test_otherGameId"
-        redisClient.set(
-            key2,
-            """{"hostId":"test_hostId","players":{"test_playerId1":{"name":"test_playerName1"},"test_playerId2":{"name":"test_playerName2"},"test_playerId3":{"name":"test_playerName3"}},"started":false}"""
-        )
-        val key3 = "test_randomKey"
-        redisClient.set(
-            key3,
-            """{"hostId":"test_hostId","players":{"test_playerId1":{"name":"test_playerName1"},"test_playerId2":{"name":"test_playerName2"},"test_playerId3":{"name":"test_playerName3"}},"started":false}"""
-        )
-
-        val actualResult: StoredGame? = repository.deleteGame(gameId = gameId)
-        val expectedResult =
+        val game =
             StoredGame(
                 hostId = "test_hostId",
                 players = mapOf(
@@ -329,10 +320,35 @@ class RedisGameRepositoryTest {
                     "test_playerId2" to StoredPlayer(name = "test_playerName2"),
                     "test_playerId3" to StoredPlayer(name = "test_playerName3"),
                 ),
-                started = false
+                started = false,
             )
-        assertEquals(expectedResult, actualResult)
-        assertEquals(setOf(key2, key3), redisClient.keys("*"))
+        redisClient.set(
+            "uk.co.rafearnold.captainsonar.game.$gameId".toByteArray(),
+            serializeGameV1(
+                hostId = game.hostId,
+                players = game.players.mapValues { it.value.name },
+                started = game.started,
+            ),
+        )
+        val key2 = "uk.co.rafearnold.captainsonar.game.test_otherGameId"
+        redisClient.set(
+            key2.toByteArray(),
+            serializeGameV1(
+                hostId = "test_hostId",
+                players = mapOf(
+                    "test_playerId1" to "test_playerName1",
+                    "test_playerId2" to "test_playerName2",
+                    "test_playerId3" to "test_playerName3",
+                ),
+                started = false,
+            ),
+        )
+        val key3 = "test_randomKey"
+        redisClient.set(key3, "")
+
+        val actualResult: StoredGame? = repository.deleteGame(gameId = gameId)
+        assertThat(actualResult).isEqualTo(game)
+        assertThat(redisClient.keys("*")).containsOnly(key2, key3)
     }
 
     @Test
@@ -340,12 +356,10 @@ class RedisGameRepositoryTest {
         val redisClientProvider: RedisClientProvider = mockk()
         val sharedDataService: SharedDataService =
             SimpleClusterManager.createSharedDataService(clusterId = "test_clusterId")
-        val objectMapper: ObjectMapper = jacksonObjectMapper()
         val repository =
             RedisGameRepository(
                 redisClientProvider = redisClientProvider,
                 sharedDataService = sharedDataService,
-                objectMapper = objectMapper
             )
 
         val redisClient = Jedis(redisContainer.host, redisContainer.firstMappedPort)
@@ -353,6 +367,21 @@ class RedisGameRepositoryTest {
 
         val gameId = "test_gameId"
         val actualResult: StoredGame? = repository.deleteGame(gameId = gameId)
-        assertNull(actualResult)
+        assertThat(actualResult).isNull()
+    }
+
+    private fun serializeGameV1(hostId: String, players: Map<String, String>, started: Boolean): ByteArray {
+        val buffer: Buffer = Buffer.buffer()
+        val hostIdBytes: ByteArray = hostId.toByteArray(Charsets.UTF_8)
+        buffer.appendInt(hostIdBytes.size).appendBytes(hostIdBytes)
+        buffer.appendInt(players.size)
+        for ((playerId: String, playerName: String) in players) {
+            val playerIdBytes: ByteArray = playerId.toByteArray(Charsets.UTF_8)
+            buffer.appendInt(playerIdBytes.size).appendBytes(playerIdBytes)
+            val playerNameBytes: ByteArray = playerName.toByteArray(Charsets.UTF_8)
+            buffer.appendInt(playerNameBytes.size).appendBytes(playerNameBytes)
+        }
+        buffer.appendByte(if (started) 1 else 0)
+        return buffer.bytes
     }
 }

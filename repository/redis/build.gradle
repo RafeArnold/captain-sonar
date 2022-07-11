@@ -10,14 +10,13 @@ dependencies {
     implementation project(":repository:session")
     implementation "com.google.inject:guice:$guice_version"
     implementation "redis.clients:jedis:$jedis_version"
-    implementation "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
     implementation "io.vertx:vertx-web:$vertx_version"
 
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
     testImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
+    testImplementation "org.assertj:assertj-core:$assertj_version"
     testImplementation "io.mockk:mockk:$mockk_version"
     testImplementation "org.testcontainers:junit-jupiter:$testcontainers_version"
-    testImplementation "com.fasterxml.jackson.module:jackson-module-kotlin:$jackson_version"
     testImplementation "uk.co.rafearnold:commons-shared-data-simple:$commons_version"
 }
 

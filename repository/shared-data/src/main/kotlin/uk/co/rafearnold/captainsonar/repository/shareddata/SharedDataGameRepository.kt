@@ -1,10 +1,10 @@
 package uk.co.rafearnold.captainsonar.repository.shareddata
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import uk.co.rafearnold.captainsonar.common.GameAlreadyExistsException
 import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
 import uk.co.rafearnold.captainsonar.repository.GameRepository
 import uk.co.rafearnold.captainsonar.repository.StoredGame
+import uk.co.rafearnold.captainsonar.repository.StoredGameSerializableHolder
 import uk.co.rafearnold.captainsonar.repository.UpdateStoredGameOperation
 import uk.co.rafearnold.commons.shareddata.SharedDataService
 import uk.co.rafearnold.commons.shareddata.SharedLock
@@ -17,10 +17,9 @@ import javax.inject.Inject
 
 class SharedDataGameRepository @Inject constructor(
     sharedDataService: SharedDataService,
-    private val objectMapper: ObjectMapper
 ) : GameRepository {
 
-    private val map: SharedMap<String, String> =
+    private val map: SharedMap<String, StoredGameSerializableHolder> =
         sharedDataService.getDistributedMap("uk.co.rafearnold.captainsonar.repository.shared-data.data-map")
 
     private val lock: SharedLock =
@@ -63,10 +62,10 @@ class SharedDataGameRepository @Inject constructor(
 
     override fun gameExists(gameId: String): Boolean = lock.withLock { map.containsKey(gameIdKey(gameId = gameId)) }
 
-    private fun StoredGame.serialize(): String = objectMapper.writeValueAsString(this)
+    private fun StoredGame.serialize(): StoredGameSerializableHolder =
+        StoredGameSerializableHolder.create(storedGame = this)
 
-    private fun String.deserializeStoredGame(): StoredGame? =
-        this.let { objectMapper.readValue(it, StoredGame::class.java) }
+    private fun StoredGameSerializableHolder.deserializeStoredGame(): StoredGame = this.storedGame
 
     companion object {
         private const val gameIdKeyPrefix = "uk.co.rafearnold.captainsonar.game."

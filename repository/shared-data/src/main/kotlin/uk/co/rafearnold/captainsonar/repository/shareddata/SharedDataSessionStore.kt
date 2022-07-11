@@ -1,8 +1,6 @@
 package uk.co.rafearnold.captainsonar.repository.shareddata
 
-import io.vertx.core.AsyncResult
 import io.vertx.core.Future
-import io.vertx.core.Handler
 import io.vertx.core.Vertx
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.auth.VertxContextPRNG
@@ -33,26 +31,25 @@ internal class SharedDataSessionStore(
     override fun createSession(timeout: Long, length: Int): Session =
         SharedDataSessionImpl(random, timeout, length)
 
-    override fun get(cookieValue: String, resultHandler: Handler<AsyncResult<Session>>) {
+    override fun get(cookieValue: String): Future<Session> {
         log.trace("Retrieving session with ID $cookieValue")
         val session: SharedDataSessionImpl? = sessionMap[cookieValue]
         session?.setPRNG(random)
-        resultHandler.handle(Future.succeededFuture(session))
+        return Future.succeededFuture(session)
     }
 
-    override fun delete(id: String, resultHandler: Handler<AsyncResult<Void>>) {
+    override fun delete(id: String): Future<Void> {
         log.trace("Deleting session with ID $id")
         sessionMap.remove(id)
-        resultHandler.handle(Future.succeededFuture())
+        return Future.succeededFuture()
     }
 
-    override fun put(session: Session, resultHandler: Handler<AsyncResult<Void>>) {
+    override fun put(session: Session): Future<Void> {
         log.trace("Putting session with ID ${session.id()}")
         val oldSession: SharedDataSessionImpl? = sessionMap[session.id()]
         val newSession: SharedDataSessionImpl = session as SharedDataSessionImpl
         if (oldSession != null && oldSession.version() != newSession.version()) {
-            resultHandler.handle(Future.failedFuture("Version mismatch"))
-            return
+            return Future.failedFuture("Version mismatch")
         }
         newSession.incrementVersion()
         sessionMap.put(
@@ -61,17 +58,17 @@ internal class SharedDataSessionStore(
             ttl = session.timeout(),
             ttlUnit = TimeUnit.MILLISECONDS
         )
-        resultHandler.handle(Future.succeededFuture())
+        return Future.succeededFuture()
     }
 
-    override fun clear(resultHandler: Handler<AsyncResult<Void>>) {
+    override fun clear(): Future<Void> {
         log.trace("Clearing all sessions")
         sessionMap.clear()
-        resultHandler.handle(Future.succeededFuture())
+        return Future.succeededFuture()
     }
 
-    override fun size(resultHandler: Handler<AsyncResult<Int>>) {
-        resultHandler.handle(Future.succeededFuture(sessionMap.size))
+    override fun size(): Future<Int> {
+        return Future.succeededFuture(sessionMap.size)
     }
 
     override fun close() {

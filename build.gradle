@@ -28,7 +28,7 @@ allprojects {
 
 ext {
     commons_version = '1.0.0-SNAPSHOT'
-    vertx_version = '4.2.7'
+    vertx_version = '4.3.2'
     hazelcast_version = '4.2.2'
     guice_version = '5.1.0'
     jedis_version = '4.2.1'
@@ -37,6 +37,7 @@ ext {
     logback_version = '1.2.11'
     slf4j_version = '1.7.36'
     junit_version = '5.8.2'
+    assertj_version = '3.22.0'
     mockk_version = '1.12.3'
     testcontainers_version = '1.17.1'
 }

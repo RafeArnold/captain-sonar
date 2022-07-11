@@ -1,8 +1,6 @@
 package uk.co.rafearnold.captainsonar.repository.redis
 
-import io.vertx.core.AsyncResult
 import io.vertx.core.Future
-import io.vertx.core.Handler
 import io.vertx.core.Vertx
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.auth.VertxContextPRNG
@@ -46,7 +44,7 @@ internal class RedisSessionStore(
     override fun createSession(timeout: Long, length: Int): Session =
         SharedDataSessionImpl(random, timeout, length)
 
-    override fun get(cookieValue: String, resultHandler: Handler<AsyncResult<Session>>) {
+    override fun get(cookieValue: String): Future<Session> {
         val session: Session? =
             lock.withLock {
                 log.trace("Retrieving session with ID $cookieValue")
@@ -55,10 +53,10 @@ internal class RedisSessionStore(
                 session?.setPRNG(random)
                 session
             }
-        resultHandler.handle(Future.succeededFuture(session))
+        return Future.succeededFuture(session)
     }
 
-    override fun delete(id: String, resultHandler: Handler<AsyncResult<Void>>) {
+    override fun delete(id: String): Future<Void> {
         lock.withLock {
             log.trace("Deleting session with ID $id")
             redisClient.use { client: Jedis ->
@@ -66,33 +64,30 @@ internal class RedisSessionStore(
                 client.del(sessionKey(sessionId = id))
             }
         }
-        resultHandler.handle(Future.succeededFuture())
+        return Future.succeededFuture()
     }
 
-    override fun put(session: Session, resultHandler: Handler<AsyncResult<Void>>) {
-        val future: Future<Void> =
-            lock.withLock {
-                log.trace("Putting session with ID ${session.id()}")
-                redisClient.use { client: Jedis ->
-                    val oldSession: SharedDataSessionImpl? = client.getSession(sessionId = session.id())
-                    val newSession: SharedDataSessionImpl = session as SharedDataSessionImpl
-                    if (oldSession != null && oldSession.version() != newSession.version()) {
-                        Future.failedFuture("Version mismatch")
-                    } else {
-                        newSession.incrementVersion()
-                        client.psetex(sessionShadowKey(sessionId = session.id()), session.timeout(), "")
-                        client.set(
-                            sessionKey(sessionId = session.id()).toByteArray(Charsets.UTF_8),
-                            sessionCodec.serialize(session = session),
-                        )
-                        Future.succeededFuture()
-                    }
+    override fun put(session: Session): Future<Void> =
+        lock.withLock {
+            log.trace("Putting session with ID ${session.id()}")
+            redisClient.use { client: Jedis ->
+                val oldSession: SharedDataSessionImpl? = client.getSession(sessionId = session.id())
+                val newSession: SharedDataSessionImpl = session as SharedDataSessionImpl
+                if (oldSession != null && oldSession.version() != newSession.version()) {
+                    Future.failedFuture("Version mismatch")
+                } else {
+                    newSession.incrementVersion()
+                    client.psetex(sessionShadowKey(sessionId = session.id()), session.timeout(), "")
+                    client.set(
+                        sessionKey(sessionId = session.id()).toByteArray(Charsets.UTF_8),
+                        sessionCodec.serialize(session = session),
+                    )
+                    Future.succeededFuture()
                 }
             }
-        resultHandler.handle(future)
-    }
+        }
 
-    override fun clear(resultHandler: Handler<AsyncResult<Void>>) {
+    override fun clear(): Future<Void> {
         lock.withLock {
             log.trace("Clearing all sessions")
             redisClient.use { client: Jedis ->
@@ -102,11 +97,11 @@ internal class RedisSessionStore(
                 if (sessionKeys.isNotEmpty()) client.del(*sessionKeys.toTypedArray())
             }
         }
-        resultHandler.handle(Future.succeededFuture())
+        return Future.succeededFuture()
     }
 
-    override fun size(resultHandler: Handler<AsyncResult<Int>>) =
-        resultHandler.handle(lock.withLock { redisClient.use { Future.succeededFuture(it.keys(sessionShadowKey(sessionId = "*")).size) } })
+    override fun size(): Future<Int> =
+        lock.withLock { redisClient.use { Future.succeededFuture(it.keys(sessionShadowKey(sessionId = "*")).size) } }
 
     override fun close() {
         // No closing operations required.

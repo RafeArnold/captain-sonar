@@ -84,7 +84,7 @@ class InMemoryRandomGameIdGeneratorTest {
         appConfig["game.id-generator.in-memory-random.random-seed"] = randomSeed1
 
         val appConfigFuture: CompletableFuture<Void> = CompletableFuture()
-        mockkStatic("uk.co.rafearnold.captainsonar.config.ObservableMapExtensionFunctionsKt")
+        mockkStatic("uk.co.rafearnold.commons.config.ObservableMapExtensionFunctionsKt")
         every {
             appConfig.addListener(keyRegex = any(), listener = any())
         } answers {

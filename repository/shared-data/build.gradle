@@ -8,15 +8,17 @@ dependencies {
     implementation project(":repository")
     implementation project(":repository:session")
     implementation "com.google.inject:guice:$guice_version"
-    implementation "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
     implementation "io.vertx:vertx-web:$vertx_version"
     compileOnly "org.slf4j:slf4j-api:$slf4j_version"
 
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junit_version"
     testImplementation "org.junit.jupiter:junit-jupiter-api:$junit_version"
+    testImplementation "org.assertj:assertj-core:$assertj_version"
     testImplementation "io.mockk:mockk:$mockk_version"
-    testImplementation "com.fasterxml.jackson.module:jackson-module-kotlin:$jackson_version"
     testImplementation "uk.co.rafearnold:commons-shared-data-simple:$commons_version"
+    testImplementation "uk.co.rafearnold:commons-shared-data-hazelcast:$commons_version"
+    testImplementation "com.hazelcast:hazelcast:$hazelcast_version"
+    testImplementation "ch.qos.logback:logback-classic:$logback_version"
 }
 
 test {

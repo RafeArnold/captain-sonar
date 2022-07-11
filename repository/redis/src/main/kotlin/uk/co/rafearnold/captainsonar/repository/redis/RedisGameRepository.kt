@@ -1,6 +1,6 @@
 package uk.co.rafearnold.captainsonar.repository.redis
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import io.vertx.core.buffer.Buffer
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.Response
 import redis.clients.jedis.Transaction
@@ -9,6 +9,7 @@ import uk.co.rafearnold.captainsonar.common.GameAlreadyExistsException
 import uk.co.rafearnold.captainsonar.common.NoSuchGameFoundException
 import uk.co.rafearnold.captainsonar.repository.GameRepository
 import uk.co.rafearnold.captainsonar.repository.StoredGame
+import uk.co.rafearnold.captainsonar.repository.StoredGameSerializableHolder
 import uk.co.rafearnold.captainsonar.repository.UpdateStoredGameOperation
 import uk.co.rafearnold.commons.shareddata.SharedDataService
 import uk.co.rafearnold.commons.shareddata.SharedLock
@@ -20,7 +21,6 @@ import javax.inject.Inject
 class RedisGameRepository @Inject constructor(
     private val redisClientProvider: RedisClientProvider,
     sharedDataService: SharedDataService,
-    private val objectMapper: ObjectMapper
 ) : GameRepository {
 
     private val redisClient: Jedis get() = redisClientProvider.get()
@@ -30,18 +30,18 @@ class RedisGameRepository @Inject constructor(
 
     override fun createGame(gameId: String, game: StoredGame, ttl: Long, ttlUnit: TimeUnit): StoredGame =
         lock.withLock {
-            val existingValue: String? =
+            val gameAlreadyExists: Boolean =
                 redisClient.use {
                     it.multi().use { transaction: Transaction ->
-                        val gameIdKey: String = gameIdKey(gameId = gameId)
-                        val getResponse: Response<String> = transaction.get(gameIdKey)
+                        val gameIdKey: ByteArray = gameIdKey(gameId = gameId)
+                        val existsResponse: Response<Boolean> = transaction.exists(gameIdKey)
                         val setParams: SetParams = SetParams().nx().px(ttlUnit.toMillis(ttl))
                         transaction.set(gameIdKey, game.serialize(), setParams)
                         transaction.exec()
-                        getResponse.get()
+                        existsResponse.get()
                     }
                 }
-            if (existingValue != null) throw GameAlreadyExistsException(gameId = gameId)
+            if (gameAlreadyExists) throw GameAlreadyExistsException(gameId = gameId)
             return game
         }
 
@@ -66,28 +66,22 @@ class RedisGameRepository @Inject constructor(
         }
 
     override fun deleteGame(gameId: String): StoredGame? =
-        lock.withLock {
-            redisClient.use {
-                it.multi().use { transaction: Transaction ->
-                    val gameIdKey: String = gameIdKey(gameId = gameId)
-                    val getResponse: Response<String?> = transaction.get(gameIdKey)
-                    transaction.del(gameIdKey)
-                    transaction.exec()
-                    getResponse.get()?.deserializeStoredGame()
-                }
-            }
-        }
+        lock.withLock { redisClient.use { it.getDel(gameIdKey(gameId = gameId))?.deserializeStoredGame() } }
 
     override fun gameExists(gameId: String): Boolean =
         lock.withLock { redisClient.exists(gameIdKey(gameId = gameId)) }
 
-    private fun StoredGame.serialize(): String = objectMapper.writeValueAsString(this)
+    private fun StoredGame.serialize(): ByteArray {
+        val buffer: Buffer = Buffer.buffer()
+        StoredGameSerializableHolder.create(this).writeToBuffer(buffer)
+        return buffer.bytes
+    }
 
-    private fun String?.deserializeStoredGame() =
-        this?.let { objectMapper.readValue(it, StoredGame::class.java) }
+    private fun ByteArray?.deserializeStoredGame(): StoredGame? =
+        this?.let { StoredGameSerializableHolder.createFromBytes(this).storedGame }
 
     companion object {
         private const val gameIdKeyPrefix = "uk.co.rafearnold.captainsonar.game."
-        private fun gameIdKey(gameId: String): String = "$gameIdKeyPrefix$gameId"
+        private fun gameIdKey(gameId: String): ByteArray = "$gameIdKeyPrefix$gameId".toByteArray(Charsets.UTF_8)
     }
 }

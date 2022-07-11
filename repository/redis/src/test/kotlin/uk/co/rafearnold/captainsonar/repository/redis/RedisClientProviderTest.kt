@@ -75,7 +75,7 @@ class RedisClientProviderTest {
 
         val appConfig: ObservableMutableMap<String, String> = ObservableMutableMapImpl(ConcurrentHashMap())
         val listenerEvents: MutableSet<ObservableMap.ListenEvent<String, String>> = ConcurrentHashMap.newKeySet()
-        mockkStatic("uk.co.rafearnold.captainsonar.config.ObservableMapExtensionFunctionsKt")
+        mockkStatic("uk.co.rafearnold.commons.config.ObservableMapExtensionFunctionsKt")
         every { appConfig.addListener(any<String>(), any()) } answers {
             val originalListener: ObservableMap.Listener<String, String> = thirdArg()
             val wrappingListener: ObservableMap.Listener<String, String> =
